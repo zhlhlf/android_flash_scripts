@@ -1,183 +1,207 @@
 @echo off
-setlocal enabledelayedexpansion
-mode con cols=75 lines=138&color 0a
-powershell -Command "$host.UI.RawUI.WindowSize = New-Object Management.Automation.Host.Size(75, 30)"
-title µ×²ãºÍÏµÍ³Ë¢Èë   by zhlhlf
-
+mode con cols=75 lines=35&color 03
+title åº•å±‚å’Œç³»ç»Ÿå®‰è£…å™¨   by zhlhlf
 goto main
-
 :main
 cls
 echo --------------------------------------------------------
-echo ±¾³ÌĞòÎªab·ÖÇø µ×²ãË¢ÈëºÍÏµÍ³Ë¢Èë¹¤¾ß
-echo ÇëÈ·ÈÏÊÖ»úÔÚfastbootÄ£Ê½ÏÂ
-echo ÇëÈ·ÈÏ×Ô¼ºÊÖ»úÄÚ´æÀàĞÍ ±ğÏ¹¼¦¶ùÂÒË¢ Ë¢´íµ×²ãÎª×©
+echo æœ¬ç¨‹åºä¸ºä¸€åŠ 9r åº•å±‚å®‰è£…å’Œç³»ç»Ÿåˆ·å…¥å·¥å…·(å•Aåˆ†åŒºç‰ˆ)
+echo è¯·ç¡®è®¤æ‰‹æœºåœ¨bootloaderæ¨¡å¼ä¸‹
+echo è¯·ç¡®è®¤è‡ªå·±æ‰‹æœºå†…å­˜ç±»å‹ åˆ«çé¸¡å„¿ä¹±åˆ· åˆ·é”™åº•å±‚ä¸ºç –
 echo                                            ----by zhlhlf
 echo --------------------------------------------------------
 echo --------------------------------------------------------
-echo                       ÇëÊäÈë
+echo                       è¯·è¾“å…¥
 echo.
-echo 1.ÊäÈë"ddr4",ÔòÊÇË¢Èëddr4ÄÚ´æĞÍµÄµ×²ã¡£
-echo 2.ÊäÈë"ddr5",ÔòÊÇË¢Èëddr5ÄÚ´æĞÍµÄµ×²ã¡£
-echo 3.ÊäÈë"1",ÔòË¢ÈëÏµÍ³¡£
-echo 4.ÊäÈë"0"ÔòÎªÍË³ö¡£
+echo 1.è¾“å…¥"ddr4",åˆ™æ˜¯å®‰è£…ddr4å†…å­˜å‹çš„åº•å±‚ã€‚
+echo 2.è¾“å…¥"ddr5",åˆ™æ˜¯å®‰è£…ddr5å†…å­˜å‹çš„åº•å±‚ã€‚
+echo 3.è¾“å…¥"1",åˆ™å®‰è£…ç³»ç»Ÿã€‚
+echo 4.è¾“å…¥"0"åˆ™ä¸ºé€€å‡ºã€‚
 echo --------------------------------------------------------
-echo.
-echo.
-set /p id="ÇëÊäÈëÑ¡Ïî£º"
-
-set "options[0]=ddr4"
-set "options[1]=ddr5"
-set "options[2]=1"
-set "options[3]=0"
-
-set "labels[0]=ddr4"
-set "labels[1]=ddr5"
-set "labels[2]=system"
-set "labels[3]=exit"
-
-for /l %%i in (0,1,3) do (
-    if "%id%"=="!options[%%i]!" (
-        goto !labels[%%i]!
-    )
-)
-
-goto main
+set /p id=
+if "%id%"=="ddr4" set next_step=0
+if "%id%"=="ddr5" set next_step=1
+if "%id%"=="1" set next_step=2
+if "%id%"=="0" set next_step=3
+if %next_step%==0 goto ddr4
+if %next_step%==1 goto ddr5
+if %next_step%==2 goto system
+if %next_step%==3 goto exit
 
 :ddr4
 echo --------------------------------------------------------
-echo Ë¢Èëddr4µÄµ×²ã...
+echo å®‰è£…ddr4çš„åº•å±‚...
 echo --------------------------------------------------------
-#tools\fastboot reboot fastboot
+tools\fastboot flash oppo_sec firmware-update\oppo_sec.img
+tools\fastboot reboot fastboot
+tools\fastboot flash bluetooth firmware-update\BTFM.img
+tools\fastboot flash DRIVER firmware-update\DRIVER.img
+tools\fastboot flash abl firmware-update\abl.img
+tools\fastboot flash aop firmware-update\aop.img
+tools\fastboot flash engineering_cdt firmware-update\cdt_engineering.img
+tools\fastboot flash cmnlib firmware-update\cmnlib.img
+tools\fastboot flash cmnlib64 firmware-update\cmnlib64.img
+tools\fastboot flash devcfg firmware-update\devcfg.img
+tools\fastboot flash apdp firmware-update\dpAP.img
+tools\fastboot flash dsp firmware-update\dspso.img
+tools\fastboot flash dtbo firmware-update\dtbo.img
+tools\fastboot flash hyp firmware-update\hyp.img
+tools\fastboot flash keymaster firmware-update\keymaster64.img
+tools\fastboot flash modem firmware-update\modem.img
+tools\fastboot flash qupfw firmware-update\qupv3fw.img
+tools\fastboot flash splash firmware-update\splash.img
+tools\fastboot flash mdm_oem_stanvbk firmware-update\static_nvbk.img
+tools\fastboot flash storsec firmware-update\storsec.img || echo "æ­¤å¤„æŠ¥é”™å¯å¿½ç•¥"
+tools\fastboot flash tz firmware-update\tz.img
 
-call :fw
-set list=xbl_config xbl imagefv
-for %%i in (!list!) do (
-    tools\fastboot flash %%i firmware-update\%%i.img
-)
+tools\fastboot flash xbl_config firmware-update\xbl_config_ddr4.img
+tools\fastboot flash xbl firmware-update\xbl_ddr4.img
+tools\fastboot flash imagefv firmware-update\imagefv_ddr4.img
 
+tools\fastboot flash recovery twrp.img
+
+tools\fastboot flash vbmeta images\vbmeta.img --disable-verity --disable-verification 
+tools\fastboot flash vbmeta_system images\vbmeta_system.img --disable-verity --disable-verification 
+tools\fastboot flash vbmeta_vendor images\vbmeta_vendor.img --disable-verity --disable-verification 
 cls
 echo --------------------------------------------------------
-echo "Ë¢Èëµ×²ãÍê³É        ÄãË¢µÄÀàĞÍÊÇ  %id%"  
+echo "åˆ·å…¥åº•å±‚å®Œæˆ        ä½ åˆ·çš„ç±»å‹æ˜¯  %id%"  
 echo --------------------------------------------------------
 pause
-
+cls
 goto main
 
 :ddr5
 echo --------------------------------------------------------
-echo Ë¢Èëddr5µÄµ×²ã...
+echo å®‰è£…ddr5çš„åº•å±‚...
 echo --------------------------------------------------------
+tools\fastboot flash oppo_sec firmware-update\oppo_sec.img
 tools\fastboot reboot fastboot
+tools\fastboot flash bluetooth firmware-update\BTFM.img
+tools\fastboot flash DRIVER firmware-update\DRIVER.img
+tools\fastboot flash abl firmware-update\abl.img
+tools\fastboot flash aop firmware-update\aop.img
+tools\fastboot flash engineering_cdt firmware-update\cdt_engineering.img
+tools\fastboot flash cmnlib firmware-update\cmnlib.img
+tools\fastboot flash cmnlib64 firmware-update\cmnlib64.img
+tools\fastboot flash devcfg firmware-update\devcfg.img
+tools\fastboot flash apdp firmware-update\dpAP.img
+tools\fastboot flash dsp firmware-update\dspso.img
+tools\fastboot flash dtbo firmware-update\dtbo.img
+tools\fastboot flash hyp firmware-update\hyp.img
+tools\fastboot flash keymaster firmware-update\keymaster64.img
+tools\fastboot flash modem firmware-update\modem.img
+tools\fastboot flash qupfw firmware-update\qupv3fw.img
+tools\fastboot flash splash firmware-update\splash.img
+tools\fastboot flash mdm_oem_stanvbk firmware-update\static_nvbk.img
+tools\fastboot flash storsec firmware-update\storsec.img || echo "æ­¤å¤„æŠ¥é”™å¯å¿½ç•¥"
+tools\fastboot flash tz firmware-update\tz.img
 
-call :fw
-set list=xbl_config xbl imagefv
-for %%i in (!list!) do (
-    set "partition=%%i"
-    set "partition_final=!partition!_ddr5"
-    tools\fastboot flash %%i firmware-update\!partition_final!.img
-)
+tools\fastboot flash xbl_config firmware-update\xbl_config_ddr5.img
+tools\fastboot flash xbl firmware-update\xbl_ddr5.img
+tools\fastboot flash imagefv firmware-update\imagefv_ddr5.img
 
-cls
+
+tools\fastboot flash recovery twrp.img
+
+tools\fastboot flash vbmeta images\vbmeta.img --disable-verity --disable-verification 
+tools\fastboot flash vbmeta_system images\vbmeta_system.img --disable-verity --disable-verification 
+tools\fastboot flash vbmeta_vendor images\vbmeta_vendor.img --disable-verity --disable-verification 
 echo --------------------------------------------------------
-echo "Ë¢Èëµ×²ãÍê³É        ÄãË¢µÄÀàĞÍÊÇ  %id%"  
+echo "åˆ·å…¥åº•å±‚å®Œæˆ        ä½ åˆ·çš„ç±»å‹æ˜¯  %id%"  
 echo --------------------------------------------------------
 pause
 goto main
 
-
-:fw
-set list=abl aop bluetooth cmnlib cmnlib64 devcfg dsp featenabler hyp imagefv keymaster logo mdm_oem_stanvbk modem multiimgoem qupfw spunvm storsec tz uefisecapp xbl xbl_config recovery
-
-for %%i in (!list!) do (
-    if exist firmware-update\%%i.img (
-        tools\fastboot flash %%i firmware-update\%%i.img
-    ) else (
-        echo firmware-update/%%i.img ²»´æÔÚ
-    )
-)
-goto :eof
-
 :system
-cls
 echo --------------------------------------------------------
-echo Ë¢ÈëÏµÍ³µÈ²Ù×÷...
+echo å®‰è£…ç³»ç»Ÿç­‰æ“ä½œ...
 echo ---------------------------------------------------------
-
+echo æ¸…é™¤é€»è¾‘åˆ†åŒº...
 if exist images\super.zst tools\zstd --rm -d images\super.zst -o images\super.img
 if exist images\super.img (
     tools\fastboot flash super images\super.img
 ) else (
-
-    set list=odm system system_ext product vendor 
-    set list2=my_bigball my_carrier my_company my_engineering my_heytap my_manifest my_preload my_product my_region my_stock
-
-    echo Çå³ıÂß¼­·ÖÇø...
-
-    for %%i in (!list!) do (
-        set "partition=%%i"
-        set "partition_cow=%%i-cow"
-        set "partition_a=!partition!_a"
-        set "partition_b=!partition!_b"
-        tools\fastboot delete-logical-partition !partition_a!
-        tools\fastboot delete-logical-partition !partition_b!
-        tools\fastboot delete-logical-partition !partition_cow!
+    tools\fastboot delete-logical-partition odm
+    tools\fastboot delete-logical-partition system
+    tools\fastboot delete-logical-partition system_ext
+    tools\fastboot delete-logical-partition product
+    tools\fastboot delete-logical-partition vendor
+    tools\fastboot delete-logical-partition my_carrier
+    tools\fastboot delete-logical-partition my_company
+    tools\fastboot delete-logical-partition my_engineering
+    tools\fastboot delete-logical-partition my_heytap
+    tools\fastboot delete-logical-partition my_manifest
+    tools\fastboot delete-logical-partition my_preload
+    tools\fastboot delete-logical-partition my_product
+    tools\fastboot delete-logical-partition my_region
+    tools\fastboot delete-logical-partition my_stock
+    tools\fastboot delete-logical-partition my_bigball
+    tools\fastboot delete-logical-partition odm-cow
+    tools\fastboot delete-logical-partition system-cow
+    tools\fastboot delete-logical-partition system_ext-cow
+    tools\fastboot delete-logical-partition product-cow
+    tools\fastboot delete-logical-partition vendor-cow
+    tools\fastboot delete-logical-partition my_carrier-cow
+    tools\fastboot delete-logical-partition my_company-cow
+    tools\fastboot delete-logical-partition my_engineering-cow
+    tools\fastboot delete-logical-partition my_heytap-cow
+    tools\fastboot delete-logical-partition my_manifest-cow
+    tools\fastboot delete-logical-partition my_preload-cow
+    tools\fastboot delete-logical-partition my_product-cow
+    tools\fastboot delete-logical-partition my_region-cow
+    tools\fastboot delete-logical-partition my_stock-cow
+    tools\fastboot delete-logical-partition my_bigball-cow
+    echo åˆ›å»ºå¹¶åˆ·å…¥é€»è¾‘åˆ†åŒº...
+    tools\fastboot create-logical-partition vendor 1
+    tools\fastboot flash vendor images\vendor.img
+    tools\fastboot create-logical-partition product 1
+    tools\fastboot flash product images\product.img
+    tools\fastboot create-logical-partition system 1
+    tools\fastboot flash system images\system.img
+    tools\fastboot create-logical-partition system_ext 1
+    tools\fastboot flash system_ext images\system_ext.img
+    tools\fastboot create-logical-partition odm 1
+    tools\fastboot flash odm images\odm.img
+    if exist images\my_bigball.img (
+        tools\fastboot create-logical-partition my_bigball 1
+        tools\fastboot flash my_bigball images\my_bigball.img
     )
-
-    for %%i in (!list2!) do (
-        set "partition=%%i"
-        set "partition_cow=%%i-cow"
-        set "partition_a=!partition!_a"
-        set "partition_b=!partition!_b"
-        tools\fastboot delete-logical-partition !partition_a!
-        tools\fastboot delete-logical-partition !partition_b!
-        tools\fastboot delete-logical-partition !partition_cow!
-    )
-
-    cls
-
-    echo Ë¢Èë·ÖÇø...
-
-    for %%i in (!list!) do (
-        set "partition=%%i"
-        set "partition_a=!partition!_a"
-        set "partition_b=!partition!_b"
-        tools\fastboot create-logical-partition !partition_a! 1
-        tools\fastboot create-logical-partition !partition_b! 1
-        tools\fastboot flash %%i images\%%i.img
-    )
-
-    if exist images\my_product.img (
-        for %%i in (!list2!) do (
-            set "partition=%%i"
-            set "partition_a=!partition!_a"
-            set "partition_b=!partition!_b"
-            tools\fastboot create-logical-partition !partition_a! 1
-            tools\fastboot create-logical-partition !partition_b! 1
-            tools\fastboot flash %%i images\%%i.img
-        )
-    )
+    tools\fastboot create-logical-partition my_carrier 1
+    tools\fastboot flash my_carrier images\my_carrier.img
+    tools\fastboot create-logical-partition my_company 1
+    tools\fastboot flash my_company images\my_company.img
+    tools\fastboot create-logical-partition my_engineering 1
+    tools\fastboot flash my_engineering images\my_engineering.img
+    tools\fastboot create-logical-partition my_heytap 1
+    tools\fastboot flash my_heytap images\my_heytap.img
+    tools\fastboot create-logical-partition my_manifest 1
+    tools\fastboot flash my_manifest images\my_manifest.img
+    tools\fastboot create-logical-partition my_preload 1
+    tools\fastboot flash my_preload images\my_preload.img
+    tools\fastboot create-logical-partition my_product 1
+    tools\fastboot flash my_product images\my_product.img
+    tools\fastboot create-logical-partition my_region 1
+    tools\fastboot flash my_region images\my_region.img
+    tools\fastboot create-logical-partition my_stock 1
+    tools\fastboot flash my_stock images\my_stock.img
 )
+tools\fastboot flash boot images\boot.img
 
-set list=boot dtbo
-for %%i in (!list!) do (
-    tools\fastboot flash %%i images\%%i.img
-)
-
-set list=vbmeta vbmeta_system
-for %%i in (!list!) do (
-    tools\fastboot flash %%i images\%%i.img --disable-verity --disable-verification 
-)
-
-echo.ÖØÆôµ½rec...
-tools\fastboot reboot recovery
+tools\fastboot flash vbmeta images\vbmeta.img --disable-verity --disable-verification 
+tools\fastboot flash vbmeta_system images\vbmeta_system.img --disable-verity --disable-verification 
+tools\fastboot flash vbmeta_vendor images\vbmeta_vendor.img --disable-verity --disable-verification
+fastboot reboot recovery
+echo.æ­£åœ¨é‡å¯åˆ°twrp...
+echo --------------------------------------------------------
+echo æ‰€æœ‰åˆ·å…¥æ“ä½œå®Œæˆï¼Œè¯·æŒ‰å›è½¦å›åˆ°ä¸»ç•Œé¢ã€‚
+echo --------------------------------------------------------
 pause
+cls
 goto main
 
 :exit
 echo --------------------------------------------------------
-echo                                    ï¿½ï¿½ï¿½ï¿½ï¿½Ë³ï¿½...
+echo                                    æ­£åœ¨é€€å‡º...
 echo --------------------------------------------------------
 exit
-
-endlocal

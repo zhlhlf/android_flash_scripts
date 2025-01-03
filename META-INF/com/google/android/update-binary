@@ -8,29 +8,6 @@ rm -rf $tmp
 mkdir -p $tmp
 cd $tmp
 
-fw_list="
-abl
-aop
-bluetooth
-cmnlib
-cmnlib64
-devcfg
-dsp
-featenabler
-hyp
-imagefv
-keymaster
-logo
-mdm_oem_stanvbk
-modem
-multioem
-multiimgoem
-qupfw
-spunvm
-storsec
-tz
-uefisecapp
-"
 
 ui_print() {
   echo -e "ui_print $1\nui_print" >>$OUTFD
@@ -58,10 +35,12 @@ exist() {
 keyListener() {
   key=$(getevent -qlc 1 2>&1 | grep VOLUME | grep " DOWN" | awk '{print $3}')
   if [ $key = "KEY_VOLUMEUP" ]; then
-    echo 1
+    echo "1"
+    return "1"
   elif [ $key = "KEY_VOLUMEDOWN" ]; then
-    echo 0
-  else
+    echo "0"
+    return "0"
+  else 
     keyListener
   fi
 }
@@ -79,20 +58,6 @@ else
     abort "ddr get fail"
 fi
 
-ui_print " "
-ui_print "you device type is: $hh"
-ui_print "-----------------------------------------"
-ui_print "             Author by zhlhlf"
-ui_print "-----------------------------------------"
-
-
-ui_print "flash fw  -> a or b?    + is a   ||  - is b"
-_ab=$(keyListener)
-if [ $_ab = 1 ];then
-  _ab=a
-elif [ $_ab = 0 ];then
-  _ab=b
-fi
 
 package_extract_file() {
  if [ `exist $1` = 0 ];then
@@ -112,19 +77,44 @@ package_extract_zstd() {
   unzip -p "$ZIPFILE" $1 | $tmp/scripts/zstd -c -d >$2
 }
 
-for i in $fw_list
-do
-   package_extract_file "firmware-update/$i.img" "/dev/block/bootdevice/by-name/${i}_$_ab"
-done    
+ui_print " "
+ui_print "you device type is: $hh"
+ui_print "-----------------------------------------"
+ui_print "             Author by zhlhlf"
+ui_print "-----------------------------------------"
+
+
+ui_print "update firmware....."
+package_extract_file firmware-update/oppo_sec.img /dev/block/by-name/oppo_sec
+package_extract_file firmware-update/BTFM.img /dev/block/by-name/bluetooth
+package_extract_file firmware-update/DRIVER.img /dev/block/by-name/DRIVER
+package_extract_file firmware-update/abl.img /dev/block/by-name/abl
+package_extract_file firmware-update/aop.img /dev/block/by-name/aop
+package_extract_file firmware-update/cdt_engineering.img /dev/block/by-name/engineering_cdt
+package_extract_file firmware-update/cmnlib.img /dev/block/by-name/cmnlib
+package_extract_file firmware-update/cmnlib64.img /dev/block/by-name/cmnlib64
+package_extract_file firmware-update/devcfg.img /dev/block/by-name/devcfg
+package_extract_file firmware-update/dpAP.img /dev/block/by-name/apdp
+package_extract_file firmware-update/dspso.img /dev/block/by-name/dsp
+package_extract_file firmware-update/hyp.img /dev/block/by-name/hyp
+package_extract_file firmware-update/keymaster64.img /dev/block/by-name/keymaster
+package_extract_file firmware-update/modem.img /dev/block/by-name/modem
+package_extract_file firmware-update/qupv3fw.img /dev/block/by-name/qupfw
+package_extract_file firmware-update/splash.img /dev/block/by-name/splash
+package_extract_file firmware-update/static_nvbk.img /dev/block/by-name/mdm_oem_stanvbk
+package_extract_file firmware-update/storsec.img /dev/block/by-name/storsec
+package_extract_file firmware-update/recovery.img /dev/block/by-name/recovery
 
 if [ $hh = "ddr4" ];then
-   package_extract_file "firmware-update/xbl.img" "/dev/block/bootdevice/by-name/xbl_$_ab"
-   package_extract_file "firmware-update/xbl_config.img" "/dev/block/bootdevice/by-name/xbl_config_$_ab"
+    package_extract_file firmware-update/xbl_config_ddr4.img /dev/block/by-name/xbl_config
+    package_extract_file firmware-update/xbl_ddr4.img /dev/block/by-name/xbl
+    package_extract_file firmware-update/imagefv_ddr4.img /dev/block/by-name/imagefv
 elif [ $hh = "ddr5" ];then
-   package_extract_file "firmware-update/xbl_lp5.img" "/dev/block/bootdevice/by-name/xbl_$_ab"
-   package_extract_file "firmware-update/xbl_config_lp5.img" "/dev/block/bootdevice/by-name/xbl_config_$_ab"
+    package_extract_file firmware-update/xbl_config_ddr5.img /dev/block/by-name/xbl_config
+    package_extract_file firmware-update/xbl_ddr5.img /dev/block/by-name/xbl
+    package_extract_file firmware-update/imagefv_ddr5.img /dev/block/by-name/imagefv
 fi
-   package_extract_file "firmware-update/recovery.img" "/dev/block/bootdevice/by-name/recovery_$_ab"
+
 
 
 ui_print " "
@@ -132,12 +122,11 @@ ui_print " "
 if [ `exist "images/super.zst"` = 1 ];then
     unzip -o "$ZIPFILE" scripts/*
     chmod 777 * -R
-    ui_print "flash rom  -> a"
     package_extract_zstd "images/super.zst" "/dev/block/bootdevice/by-name/super"
-    list="boot dtbo vbmeta vbmeta_system"
+    list="boot dtbo vbmeta vbmeta_system vbmeta_vendor"
     for i in $list
     do
-        package_extract_file images/${i}.img /dev/block/by-name/${i}_a
+        package_extract_file images/${i}.img /dev/block/by-name/${i}
     done
 elif [ `exist "images/system.img"` = 1 ];then
 
@@ -154,6 +143,11 @@ elif [ `exist "images/system.img"` = 1 ];then
     
     check_datasize 
 
+    tmp=/data/tmp
+    rm -rf $tmp
+    mkdir -p $tmp
+    cd $tmp
+
     list="boot dtbo vbmeta vbmeta_system"
 
     if [ `exist images/my_stock.img` = 1 ];then
@@ -166,14 +160,14 @@ elif [ `exist "images/system.img"` = 1 ];then
         list_super+=" my_bigball.img"
     fi
 
-    images_x = 1
+    images_all = 1
 
     images_exist(){
         for i in `echo $1 | cut -d' ' -f1-*`
         do
             i=$(basename $i .img)
             if [ `exist images/$i.img` != 1 ];then
-                images_x=0
+                images_all=0
                 return
             fi
         done
@@ -182,22 +176,10 @@ elif [ `exist "images/system.img"` = 1 ];then
     images_exist "$list"
     images_exist "$list_super"
 
-    if [ $images_x == "0" ];then
+    if [ $images_all = 0 ];then
         abort "images bad"
     fi
 
-    tmp=/data/tmp
-    rm -rf $tmp
-    mkdir -p $tmp
-    cd $tmp
-            
-    ui_print "flash rom  -> a or b?    + is a   ||  - is b"
-    _ab=$(keyListener)
-    if [ $_ab = 1 ];then
-      _ab=a
-    elif [ $_ab = 0 ];then
-      _ab=b
-    fi
     ui_print "extarct images/* ..."
 
     unzip -o "$ZIPFILE" images/*
@@ -206,11 +188,9 @@ elif [ `exist "images/system.img"` = 1 ];then
     chmod 777 * -R        
     mv images project
 
-
-
     flash_images(){
         . ./scripts/functions.sh
-        make_super "7516192768" "project" "$list_super" "VAB" "$1"
+        make_super "9126805504" "project" "$list_super" "A"
         if [ -f project/super.img ];then
             package_extract_file project/super.img /dev/block/by-name/super "1"
         else
@@ -219,11 +199,11 @@ elif [ `exist "images/system.img"` = 1 ];then
 
         for i in $list
         do
-            package_extract_file project/${i}.img /dev/block/by-name/${i}_$_ab "1"
+            package_extract_file project/${i}.img /dev/block/by-name/${i} "1"
         done
     }
 
     #开始生成和刷入super并刷入images剩余部分
-    flash_images $_ab
+    flash_images
 fi
 rm -rf $tmp
