@@ -9,9 +9,8 @@ goto main
 :main
 cls
 echo --------------------------------------------------------
-echo 本程序为ab分区 底层刷入和系统刷入工具
-echo 请确认手机在fastboot模式下
-echo 请确认自己手机内存类型 别瞎鸡儿乱刷 刷错底层为砖
+echo 本程序为ab分区 底层和系统刷入工具
+echo 请确认手机在fastboot or bootloader模式下
 echo                                            ----by zhlhlf
 echo --------------------------------------------------------
 echo --------------------------------------------------------
@@ -48,7 +47,7 @@ goto main
 echo --------------------------------------------------------
 echo 刷入ddr4的底层...
 echo --------------------------------------------------------
-#tools\fastboot reboot fastboot
+tools\fastboot reboot fastboot
 
 call :fw
 set list=xbl_config xbl imagefv
@@ -87,86 +86,72 @@ goto main
 
 
 :fw
-set list=abl aop bluetooth cmnlib cmnlib64 devcfg dsp featenabler hyp imagefv keymaster logo mdm_oem_stanvbk modem multiimgoem qupfw spunvm storsec tz uefisecapp xbl xbl_config recovery
+set fw_path=firmware-update
 
-for %%i in (!list!) do (
-    if exist firmware-update\%%i.img (
-        tools\fastboot flash %%i firmware-update\%%i.img
-    ) else (
-        echo firmware-update/%%i.img 不存在
-    )
+for %%i in (%fw_path%\*.img) do (
+        set filename=%%~nxi
+        set filename=!filename:_lp5=!
+
+        if "!filename!"=="%%~nxi" (
+            set filename=%%~ni
+            tools\fastboot flash !filename! %%i
+        )
 )
+
 goto :eof
 
 :system
+
 cls
 echo --------------------------------------------------------
 echo 刷入系统等操作...
 echo ---------------------------------------------------------
+
+set images_path=images
 
 if exist images\super.zst tools\zstd --rm -d images\super.zst -o images\super.img
 if exist images\super.img (
     tools\fastboot flash super images\super.img
 ) else (
 
-    set list=odm system system_ext product vendor 
-    set list2=my_bigball my_carrier my_company my_engineering my_heytap my_manifest my_preload my_product my_region my_stock
+    for %%i in (%images_path%\*.img) do (
+        set filename=%%~nxi
+        set filename=!filename:vbmeta=!
+        set filename=!filename:boot=!
+        set filename=!filename:dtbo=!
 
-    echo 清除逻辑分区...
-
-    for %%i in (!list!) do (
-        set "partition=%%i"
-        set "partition_cow=%%i-cow"
-        set "partition_a=!partition!_a"
-        set "partition_b=!partition!_b"
-        tools\fastboot delete-logical-partition !partition_a!
-        tools\fastboot delete-logical-partition !partition_b!
-        tools\fastboot delete-logical-partition !partition_cow!
-    )
-
-    for %%i in (!list2!) do (
-        set "partition=%%i"
-        set "partition_cow=%%i-cow"
-        set "partition_a=!partition!_a"
-        set "partition_b=!partition!_b"
-        tools\fastboot delete-logical-partition !partition_a!
-        tools\fastboot delete-logical-partition !partition_b!
-        tools\fastboot delete-logical-partition !partition_cow!
-    )
-
-    cls
-
-    echo 刷入分区...
-
-    for %%i in (!list!) do (
-        set "partition=%%i"
-        set "partition_a=!partition!_a"
-        set "partition_b=!partition!_b"
-        tools\fastboot create-logical-partition !partition_a! 1
-        tools\fastboot create-logical-partition !partition_b! 1
-        tools\fastboot flash %%i images\%%i.img
-    )
-
-    if exist images\my_product.img (
-        for %%i in (!list2!) do (
-            set "partition=%%i"
+        if "!filename!"=="%%~nxi" (
+::  逻辑分区部分
+            set filename=%%~ni
+            set "partition=!filename!
+            set "partition_cow=!partition!-cow"
             set "partition_a=!partition!_a"
             set "partition_b=!partition!_b"
+::            tools\fastboot delete-logical-partition !partition!
+            tools\fastboot delete-logical-partition !partition_a!
+            tools\fastboot delete-logical-partition !partition_b!
+            tools\fastboot delete-logical-partition !partition_cow!
             tools\fastboot create-logical-partition !partition_a! 1
             tools\fastboot create-logical-partition !partition_b! 1
-            tools\fastboot flash %%i images\%%i.img
+            tools\fastboot flash !partition! %%i
         )
     )
 )
+cls
 
-set list=boot dtbo
-for %%i in (!list!) do (
-    tools\fastboot flash %%i images\%%i.img
+::  boot部分
+for %%i in (%images_path%\*boot*.img) do (
+    set filename=%%~ni
+    tools\fastboot flash !filename! %%i
 )
 
-set list=vbmeta vbmeta_system
-for %%i in (!list!) do (
-    tools\fastboot flash %%i images\%%i.img --disable-verity --disable-verification 
+::  dtbo部分
+tools\fastboot flash dtbo %images_path%\dtbo.img
+
+::  vbmeta部分
+for %%i in (%images_path%\vbmeta*.img) do (
+    set filename=%%~ni
+    tools\fastboot flash !filename! %%i  --disable-verity --disable-verification 
 )
 
 echo.重启到rec...
@@ -176,7 +161,7 @@ goto main
 
 :exit
 echo --------------------------------------------------------
-echo                                    锟斤拷锟斤拷锟剿筹拷...
+echo                                    刷入完成...
 echo --------------------------------------------------------
 exit
 
