@@ -179,8 +179,6 @@ chmod 777 * -R
 
 
 if [ `exist "images/super."` = 1 ];then
-    ui_print "flash rom  -> a"
-    
     #flash super..
     if [ `exist "images/super.zst"` = 1 ];then
         package_extract_zstd "images/super.zst" "$pt_dir/super"
