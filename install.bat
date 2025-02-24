@@ -108,11 +108,26 @@ echo 刷入系统等操作...
 echo ---------------------------------------------------------
 
 set images_path=images
+set "flash_files="
+set "slot="
 
 if exist images\super.zst tools\zstd --rm -d images\super.zst -o images\super.img
 if exist images\super.img (
     tools\fastboot flash super images\super.img
 ) else (
+
+:: 执行 fastboot 命令并捕获输出
+for /f "tokens=2 delims=: " %%i in ('fastboot getvar current-slot 2^>^&1 ^| findstr /r /c:"current-slot:"') do (
+    set slot=%%i
+)
+
+:: 检查是否成功获取槽位
+if "!slot!"=="" (
+    echo 未能获取当前槽位信息 按任意键退出！。
+    pause
+    exit /b 1
+)
+
 
     for %%i in (%images_path%\*.img) do (
         set filename=%%~nxi
@@ -123,21 +138,30 @@ if exist images\super.img (
         if "!filename!"=="%%~nxi" (
 ::  逻辑分区部分
             set filename=%%~ni
-            set "partition=!filename!
-            set "partition_cow=!partition!-cow"
+            set "partition=!filename!"
+            set "partition_a-cow=!partition!_a-cow"
+            set "partition_b-cow=!partition!_b-cow"
             set "partition_a=!partition!_a"
             set "partition_b=!partition!_b"
-::            tools\fastboot delete-logical-partition !partition!
+
+            set "flash_files=!flash_files! !partition!"
+
             tools\fastboot delete-logical-partition !partition_a!
             tools\fastboot delete-logical-partition !partition_b!
-            tools\fastboot delete-logical-partition !partition_cow!
-            tools\fastboot create-logical-partition !partition_a! 1
-            tools\fastboot create-logical-partition !partition_b! 1
-            tools\fastboot flash !partition! %%i
+            tools\fastboot delete-logical-partition !partition_a-cow!
+            tools\fastboot delete-logical-partition !partition_b-cow!
+            set "partition=!filename!_!slot!"
+            tools\fastboot create-logical-partition !partition! 1
+
         )
     )
+    echo super_list: !flash_files!
+
+    for %%i in (!flash_files!) do (
+        tools\fastboot flash %%i images\%%i.img
+    )
 )
-cls
+
 
 ::  boot部分
 for %%i in (%images_path%\*boot*.img) do (
@@ -154,8 +178,8 @@ for %%i in (%images_path%\vbmeta*.img) do (
     tools\fastboot flash !filename! %%i  --disable-verity --disable-verification 
 )
 
-echo.重启到rec...
-tools\fastboot reboot recovery
+echo.重启..
+tools\fastboot reboot
 pause
 goto main
 
