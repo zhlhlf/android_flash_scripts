@@ -1,6 +1,6 @@
 @echo off
 setlocal enabledelayedexpansion
-mode con cols=75 lines=138&color 0a
+mode con cols=75 lines=138&color 03
 powershell -Command "$host.UI.RawUI.WindowSize = New-Object Management.Automation.Host.Size(75, 30)"
 title 底层和系统刷入   by zhlhlf
 
@@ -16,92 +16,85 @@ echo --------------------------------------------------------
 echo --------------------------------------------------------
 echo                       请输入
 echo.
-echo 1.输入"ddr4",则是刷入ddr4内存型的底层。
-echo 2.输入"ddr5",则是刷入ddr5内存型的底层。
-echo 3.输入"1",则刷入系统。
-echo 4.输入"0"则为退出。
+echo 1.刷入FW和ROM（完整刷机）
+echo 2.仅刷入FW（底层/固件）
+echo 3.仅刷入ROM（系统）
+echo 4.清除data数据（需在fastbootd模式）
+echo 0.退出程序
 echo --------------------------------------------------------
 echo.
 echo.
-set /p id="请输入选项："
 
-set "options[0]=ddr4"
-set "options[1]=ddr5"
-set "options[2]=1"
-set "options[3]=0"
+:input
+set /p "id=请输入选项："
+if not defined id goto input
 
-set "labels[0]=ddr4"
-set "labels[1]=ddr5"
-set "labels[2]=system"
-set "labels[3]=exit"
+rem 定义选项与对应标签的映射关系
+set "options=1:fw_and_rom 2:fw 3:rom 4:wipe_data 0:exit"
 
-for /l %%i in (0,1,3) do (
-    if "%id%"=="!options[%%i]!" (
-        goto !labels[%%i]!
+for %%a in (%options%) do (
+    for /f "tokens=1,2 delims=:" %%b in ("%%a") do (
+        if "%id%"=="%%b" (
+            call :%%c
+        )
     )
 )
 
-goto main
-
-:ddr4
-echo --------------------------------------------------------
-echo 刷入ddr4的底层...
-echo --------------------------------------------------------
-tools\fastboot reboot fastboot
-
-call :fw
-set list=xbl_config xbl imagefv
-for %%i in (!list!) do (
-    tools\fastboot flash %%i firmware-update\%%i.img
-)
-
-cls
-echo --------------------------------------------------------
-echo "刷入底层完成        你刷的类型是  %id%"  
-echo --------------------------------------------------------
-pause
-
-goto main
-
-:ddr5
-echo --------------------------------------------------------
-echo 刷入ddr5的底层...
-echo --------------------------------------------------------
-tools\fastboot reboot fastboot
-
-call :fw
-set list=xbl_config xbl imagefv
-for %%i in (!list!) do (
-    set "partition=%%i"
-    set "partition_final=!partition!_ddr5"
-    tools\fastboot flash %%i firmware-update\!partition_final!.img
-)
-
-cls
-echo --------------------------------------------------------
-echo "刷入底层完成        你刷的类型是  %id%"  
-echo --------------------------------------------------------
 pause
 goto main
 
+:fw_and_rom
+echo 正在刷入fw和rom...
+call :fw
+call :rom
+echo fw和rom刷入完成！
+goto :eof
 
 :fw
+cls
 set fw_path=firmware-update
+echo 需要手机进入 bootloader 或者 fastbootd 状态
+
+echo 重新进入bootloader...
+tools\fastboot reboot bootloader
+
+if exist %fw_path%\modem.img (
+    echo 刷入modem中..
+    tools\fastboot flash modem %fw_path%\modem.img
+)
+
+echo 重新进入fastboot...
+tools\fastboot reboot fastboot
 
 for %%i in (%fw_path%\*.img) do (
-        set filename=%%~nxi
-        set filename=!filename:_lp5=!
+    set filename=%%~nxi
+    set filename=!filename:modem=!
 
-        if "!filename!"=="%%~nxi" (
-            set filename=%%~ni
-            tools\fastboot flash !filename! %%i
-        )
+    if "!filename!"=="%%~nxi" (
+        set filename=%%~ni
+        tools\fastboot flash !filename! %%i
+    )
 )
+
+echo --------------------------------------------------------
+echo "刷入fw底层完成"
+echo --------------------------------------------------------
 
 goto :eof
 
-:system
+:wipe_data
+echo 即将清除data数据，请确保手机已进入fastbootd模式！
+set /p "confirm=请输入[y/n]："
+if /i "!confirm!"=="y" (
+    echo 正在清除data数据...
+    tools\fastboot -w
+    echo data数据已清除！
+) else (
+    echo 已取消操作。
+)
+goto :eof
 
+:rom
 cls
 echo --------------------------------------------------------
 echo 刷入系统等操作...
@@ -115,19 +108,15 @@ if exist images\super.zst tools\zstd --rm -d images\super.zst -o images\super.im
 if exist images\super.img (
     tools\fastboot flash super images\super.img
 ) else (
+    for /f "tokens=2 delims=: " %%i in ('fastboot getvar current-slot 2^>^&1 ^| findstr /r /c:"current-slot:"') do (
+        set slot=%%i
+    )
 
-:: 执行 fastboot 命令并捕获输出
-for /f "tokens=2 delims=: " %%i in ('fastboot getvar current-slot 2^>^&1 ^| findstr /r /c:"current-slot:"') do (
-    set slot=%%i
-)
-
-:: 检查是否成功获取槽位
-if "!slot!"=="" (
-    echo 未能获取当前槽位信息 按任意键退出！。
-    pause
-    exit /b 1
-)
-
+    if "!slot!"=="" (
+        echo 未能获取当前槽位信息 按任意键退出！。
+        pause
+        exit /b 1
+    )
 
     for %%i in (%images_path%\*.img) do (
         set filename=%%~nxi
@@ -162,31 +151,31 @@ if "!slot!"=="" (
     )
 )
 
-
-::  boot部分
-for %%i in (%images_path%\*boot*.img) do (
-    set filename=%%~ni
-    tools\fastboot flash !filename! %%i
+for %%i in (
+    "%images_path%\*boot*.img"
+    "%images_path%\dtbo.img"
+) do (
+    if exist "%%i" (
+        set "filename=%%~ni"
+        tools\fastboot flash !filename! "%%i"
+    )
 )
 
-::  dtbo部分
-tools\fastboot flash dtbo %images_path%\dtbo.img
-
-::  vbmeta部分
-for %%i in (%images_path%\vbmeta*.img) do (
-    set filename=%%~ni
-    tools\fastboot flash !filename! %%i  --disable-verity --disable-verification 
+for %%i in ("%images_path%\vbmeta*.img") do (
+    set "filename=%%~ni"
+    tools\fastboot flash !filename! "%%i" --disable-verity --disable-verification
 )
+
+call :wipe_data
 
 echo.重启..
 tools\fastboot reboot
 pause
-goto main
+goto :eof
+
 
 :exit
-echo --------------------------------------------------------
-echo                                    刷入完成...
-echo --------------------------------------------------------
+
 exit
 
 endlocal
