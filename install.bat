@@ -84,15 +84,20 @@ goto :eof
 
 :wipe_data
 echo 即将清除data数据，请确保手机已进入fastbootd模式！
+:confirm_input
 set /p "confirm=请输入[y/n]："
-if /i "!confirm!"=="y" (
+if /i "%confirm%"=="y" (
     echo 正在清除data数据...
     tools\fastboot -w
     echo data数据已清除！
-) else (
+    goto :eof
+) else if /i "%confirm%"=="n" (
     echo 已取消操作。
+    goto :eof
+) else (
+    echo 输入无效，请重新输入！
+    goto confirm_input
 )
-goto :eof
 
 :rom
 cls
