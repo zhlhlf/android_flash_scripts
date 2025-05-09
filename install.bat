@@ -1,183 +1,207 @@
 @echo off
 setlocal enabledelayedexpansion
-mode con cols=75 lines=138&color 0a
+mode con cols=75 lines=138&color 03
 powershell -Command "$host.UI.RawUI.WindowSize = New-Object Management.Automation.Host.Size(75, 30)"
 title 底层和系统刷入   by zhlhlf
+
+:: 全局变量，标记是否为官方刷入模式
+set "OFFICIAL_MODE="
 
 goto main
 
 :main
 cls
 echo --------------------------------------------------------
-echo 本程序为ab分区 底层刷入和系统刷入工具
-echo 请确认手机在fastboot模式下
-echo 请确认自己手机内存类型 别瞎鸡儿乱刷 刷错底层为砖
+echo 本程序为欧加真ab分区 底层和系统刷入工具
+echo 请确认手机在fastboot or bootloader模式下
 echo                                            ----by zhlhlf
 echo --------------------------------------------------------
 echo --------------------------------------------------------
 echo                       请输入
 echo.
-echo 1.输入"ddr4",则是刷入ddr4内存型的底层。
-echo 2.输入"ddr5",则是刷入ddr5内存型的底层。
-echo 3.输入"1",则刷入系统。
-echo 4.输入"0"则为退出。
+echo 1.刷入FW和ROM（完整刷机 非官方）
+echo 2.刷入FW和ROM（完整刷机 官方包）
+echo 3.仅刷入FW（底层）
+echo 4.仅刷入ROM（系统）
+echo 5.清除data数据（需在fastbootd模式）
+echo 0.退出程序
 echo --------------------------------------------------------
 echo.
 echo.
-set /p id="请输入选项："
 
-set "options[0]=ddr4"
-set "options[1]=ddr5"
-set "options[2]=1"
-set "options[3]=0"
+:input
+set /p "id=请输入选项："
+if not defined id goto input
 
-set "labels[0]=ddr4"
-set "labels[1]=ddr5"
-set "labels[2]=system"
-set "labels[3]=exit"
+rem 定义选项与对应标签的映射关系
+set "options=1:fw_and_rom 2:fw_and_rom1 3:fw 4:rom 5:wipe_data 0:exit"
 
-for /l %%i in (0,1,3) do (
-    if "%id%"=="!options[%%i]!" (
-        goto !labels[%%i]!
+for %%a in (%options%) do (
+    for /f "tokens=1,2 delims=:" %%b in ("%%a") do (
+        if "%id%"=="%%b" (
+            call :%%c
+        )
     )
 )
 
-goto main
-
-:ddr4
-echo --------------------------------------------------------
-echo 刷入ddr4的底层...
-echo --------------------------------------------------------
-#tools\fastboot reboot fastboot
-
-call :fw
-set list=xbl_config xbl imagefv
-for %%i in (!list!) do (
-    tools\fastboot flash %%i firmware-update\%%i.img
-)
-
-cls
-echo --------------------------------------------------------
-echo "刷入底层完成        你刷的类型是  %id%"  
-echo --------------------------------------------------------
-pause
-
-goto main
-
-:ddr5
-echo --------------------------------------------------------
-echo 刷入ddr5的底层...
-echo --------------------------------------------------------
-tools\fastboot reboot fastboot
-
-call :fw
-set list=xbl_config xbl imagefv
-for %%i in (!list!) do (
-    set "partition=%%i"
-    set "partition_final=!partition!_ddr5"
-    tools\fastboot flash %%i firmware-update\!partition_final!.img
-)
-
-cls
-echo --------------------------------------------------------
-echo "刷入底层完成        你刷的类型是  %id%"  
-echo --------------------------------------------------------
 pause
 goto main
 
+:: 非官方刷入（禁用验证）
+:fw_and_rom
+echo 正在刷入fw和rom...
+set "OFFICIAL_MODE=false"
+call :fw
+call :rom
+call :wipe_data
+echo.重启..
+tools\fastboot reboot
+pause
+goto :eof
+
+:: 官方刷入（保持验证）
+:fw_and_rom1
+echo 正在刷入fw和rom...
+set "OFFICIAL_MODE=true"
+call :fw
+call :rom
+call :wipe_data
+echo.重启..
+tools\fastboot reboot
+pause
+goto :eof
 
 :fw
-set list=abl aop bluetooth cmnlib cmnlib64 devcfg dsp featenabler hyp imagefv keymaster logo mdm_oem_stanvbk modem multiimgoem qupfw spunvm storsec tz uefisecapp xbl xbl_config recovery
+cls
+set fw_path=firmware-update
+tools\adb shell reboot bootloader >nul 2>&1
 
-for %%i in (!list!) do (
-    if exist firmware-update\%%i.img (
-        tools\fastboot flash %%i firmware-update\%%i.img
-    ) else (
-        echo firmware-update/%%i.img 不存在
+if exist %fw_path%\modem.img (
+    echo 刷入modem中..
+    tools\fastboot flash modem %fw_path%\modem.img
+)
+
+echo 进入fastboot...
+tools\fastboot reboot fastboot
+
+for %%i in (%fw_path%\*.img) do (
+    set filename=%%~nxi
+    set filename=!filename:modem=!
+
+    if "!filename!"=="%%~nxi" (
+        set filename=%%~ni
+        tools\fastboot flash !filename! %%i
     )
+)
+
+echo --------------------------------------------------------
+echo "刷入fw底层完成"
+echo --------------------------------------------------------
+goto :eof
+
+
+:wipe_data
+echo 是否清除data数据？
+:confirm_input
+set /p "confirm=请输入[y/n]："
+if /i "%confirm%"=="y" (
+    echo 正在清除data数据...
+    tools\fastboot -w
+    echo data数据已清除！
+    goto :eof
+) else if /i "%confirm%"=="n" (
+    echo 已取消操作。
+    goto :eof
+) else (
+    echo 输入无效，请重新输入！
+    goto confirm_input
 )
 goto :eof
 
-:system
+
+:rom
 cls
 echo --------------------------------------------------------
 echo 刷入系统等操作...
 echo ---------------------------------------------------------
 
+set images_path=images
+set "flash_files="
+set "slot="
+
 if exist images\super.zst tools\zstd --rm -d images\super.zst -o images\super.img
 if exist images\super.img (
     tools\fastboot flash super images\super.img
 ) else (
-
-    set list=odm system system_ext product vendor 
-    set list2=my_bigball my_carrier my_company my_engineering my_heytap my_manifest my_preload my_product my_region my_stock
-
-    echo 清除逻辑分区...
-
-    for %%i in (!list!) do (
-        set "partition=%%i"
-        set "partition_cow=%%i-cow"
-        set "partition_a=!partition!_a"
-        set "partition_b=!partition!_b"
-        tools\fastboot delete-logical-partition !partition_a!
-        tools\fastboot delete-logical-partition !partition_b!
-        tools\fastboot delete-logical-partition !partition_cow!
+    for /f "tokens=2 delims=: " %%i in ('tools\fastboot getvar current-slot 2^>^&1 ^| findstr /r /c:"current-slot:"') do (
+        set slot=%%i
     )
 
-    for %%i in (!list2!) do (
-        set "partition=%%i"
-        set "partition_cow=%%i-cow"
-        set "partition_a=!partition!_a"
-        set "partition_b=!partition!_b"
-        tools\fastboot delete-logical-partition !partition_a!
-        tools\fastboot delete-logical-partition !partition_b!
-        tools\fastboot delete-logical-partition !partition_cow!
+    if "!slot!"=="" (
+        echo 未能获取当前槽位信息 按任意键退出！。
+        pause
+        exit /b 1
     )
 
-    cls
+    for %%i in (%images_path%\*.img) do (
+        set filename=%%~nxi
+        set filename=!filename:vbmeta=!
+        set filename=!filename:boot=!
+        set filename=!filename:dtbo=!
 
-    echo 刷入分区...
-
-    for %%i in (!list!) do (
-        set "partition=%%i"
-        set "partition_a=!partition!_a"
-        set "partition_b=!partition!_b"
-        tools\fastboot create-logical-partition !partition_a! 1
-        tools\fastboot create-logical-partition !partition_b! 1
-        tools\fastboot flash %%i images\%%i.img
-    )
-
-    if exist images\my_product.img (
-        for %%i in (!list2!) do (
-            set "partition=%%i"
+        if "!filename!"=="%%~nxi" (
+            ::  逻辑分区部分
+            set filename=%%~ni
+            set "partition=!filename!"
+            set "partition_a-cow=!partition!_a-cow"
+            set "partition_b-cow=!partition!_b-cow"
             set "partition_a=!partition!_a"
             set "partition_b=!partition!_b"
-            tools\fastboot create-logical-partition !partition_a! 1
-            tools\fastboot create-logical-partition !partition_b! 1
-            tools\fastboot flash %%i images\%%i.img
+
+            set "flash_files=!flash_files! !partition!"
+
+            tools\fastboot delete-logical-partition !partition_a!
+            tools\fastboot delete-logical-partition !partition_b!
+            tools\fastboot delete-logical-partition !partition_a-cow!
+            tools\fastboot delete-logical-partition !partition_b-cow!
+            set "partition=!filename!_!slot!"
+            tools\fastboot create-logical-partition !partition! 1
         )
+    )
+    echo super_list: !flash_files!
+
+    for %%i in (!flash_files!) do (
+        tools\fastboot flash %%i images\%%i.img
     )
 )
 
-set list=boot dtbo
-for %%i in (!list!) do (
-    tools\fastboot flash %%i images\%%i.img
+for %%i in (
+    "%images_path%\*boot*.img"
+    "%images_path%\dtbo.img"
+) do (
+    if exist "%%i" (
+        set "filename=%%~ni"
+        tools\fastboot flash !filename! "%%i"
+    )
 )
 
-set list=vbmeta vbmeta_system
-for %%i in (!list!) do (
-    tools\fastboot flash %%i images\%%i.img --disable-verity --disable-verification 
+:: 根据官方/非官方模式决定vbmeta刷入方式
+for %%i in ("%images_path%\vbmeta*.img") do (
+    set "filename=%%~ni"
+    if "!OFFICIAL_MODE!"=="true" (
+        echo [官方模式] 刷入 !filename! 不带验证参数
+        tools\fastboot flash !filename! "%%i"
+    ) else (
+        echo [非官方模式] 刷入 !filename! 带--disable-verity --disable-verification参数
+        tools\fastboot flash !filename! "%%i" --disable-verity --disable-verification
+    )
 )
 
-echo.重启到rec...
-tools\fastboot reboot recovery
-pause
-goto main
+goto :eof
+
 
 :exit
-echo --------------------------------------------------------
-echo                                    锟斤拷锟斤拷锟剿筹拷...
-echo --------------------------------------------------------
+
 exit
 
 endlocal
