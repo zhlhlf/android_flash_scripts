@@ -155,28 +155,27 @@ elif [ $hh = "ddr5" ];then
 fi
 
 
-#刷入super并刷入images剩余部分
 ui_print " "
-ui_print "flash rom  -> a or b?    + is a   ||  - is b"
-_ab=$(keyListener)
-if [ $_ab = 1 ];then
-  _ab=a
-elif [ $_ab = 0 ];then
-  _ab=b
-fi
-
 # 刷入*boot* *vbmeta* dtbo
 if [ `exist "images/boot.img"` = 1 ];then
+    ui_print "flash rom  -> a or b?    + is a   ||  - is b"
+    _ab=$(keyListener)
+    if [ $_ab = 1 ];then
+      _ab=a
+    elif [ $_ab = 0 ];then
+      _ab=b
+    fi
+
     for i in `cat $img_list | grep -e "boot" -e "vbmeta" -e "dtbo"`
     do
         flash_image $i
     done
 fi
 
+#刷入super并刷入images剩余部分
 unzip -q "$ZIPFILE" scripts/*
 export PATH=$(pwd)/scripts:$PATH
 chmod 777 * -R
-
 
 if [ `exist "images/super."` = 1 ];then
     #flash super..
