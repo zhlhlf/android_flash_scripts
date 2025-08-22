@@ -154,8 +154,10 @@ elif [ $hh = "ddr5" ];then
    package_extract_file "$fw/xbl_config_lp5.img" "$pt_dir/xbl_config_$_ab"
 fi
 
-
 ui_print " "
+ui_print "fw all write yes"
+ui_print " "
+
 # 刷入*boot* *vbmeta* dtbo
 if [ `exist "images/boot.img"` = 1 ];then
     ui_print "flash rom  -> a or b?    + is a   ||  - is b"
@@ -182,7 +184,7 @@ if [ `exist "images/super."` = 1 ];then
     if [ `exist "images/super.zst"` = 1 ];then
         package_extract_zstd "images/super.zst" "$pt_dir/super"
     elif [ `exist "images/super.img"` = 1 ];then
-        flash_image "images/super.img"
+        package_extract_file images/super.img $pt_dir/super
     fi
     
 elif [ `exist "images/system.img"` = 1 ];then
