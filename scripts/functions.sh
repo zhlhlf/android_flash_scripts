@@ -1,54 +1,60 @@
+make_super() {
+    echo "start pack super.img..."
+    super_dir="$1"
+    super_list="$2" #system ...
+    super_type=$3   #VAB or AB
+    super_slot=$4   #a or b
 
-make_super(){
-    echo "Packing super.img"
-    super_size=$1 
-    super_dir="$2"
-    super_list="$3" #system ...
-    super_type=$4  #VAB or AB
-    super_slot=$5  #a or b
-    
     sSize=0
     super_group=qti_dynamic_partitions
     argvs="--metadata-size 65536 --super-name super "
     for i in $super_list; do
         image=$(echo "$i" | sed 's/.img//g')
-        img_size=$(du -sb $super_dir/$image.img | tr -cd 0-9)
-        if [ "$super_type" = "VAB" ] || [ "$super_type" = "AB" ];then
-            if [ "$super_slot" = "a" ];then    
-          	  argvs+="--partition "$image"_a:none:$img_size:${super_group}_a --image "$image"_a=$super_dir/$image.img --partition "$image"_b:none:0:${super_group}_b "
-            elif [ "$super_slot" = "b" ];then    
-          	  argvs+="--partition "$image"_b:none:$img_size:${super_group}_b --image "$image"_b=$super_dir/$image.img --partition "$image"_a:none:0:${super_group}_a "
+        img_size=$(du -sb "$super_dir/$image.img" | awk '{print $1}')
+        if [ "$super_type" = "VAB" ] || [ "$super_type" = "AB" ]; then
+            if [ "$super_slot" = "a" ]; then
+                argvs+="--partition "$image"_a:none:$img_size:${super_group}_a --image "$image"_a=$super_dir/$image.img --partition "$image"_b:none:0:${super_group}_b "
+            elif [ "$super_slot" = "b" ]; then
+                argvs+="--partition "$image"_b:none:$img_size:${super_group}_b --image "$image"_b=$super_dir/$image.img --partition "$image"_a:none:0:${super_group}_a "
             fi
         else
             argvs+="--partition "$image":none:$img_size:${super_group} --image "$image"=$super_dir/$image.img "
         fi
-        sSize=$((sSize + img_size))
+        sSize=$(echo "$sSize+$img_size" | bc)
         echo "Super sub-partition [$image] size: [$img_size]"
     done
+    echo "super_type: $super_type  slot: $super_slot  set-size: ${super_size} allSize: $sSize"
+
+    # if [ $sSize -lt $super_size ];then
+    #     super_size=`echo "$sSize / 1048576 * 1048576 + 1048576 * 16" | bc`
+    #     echo "super_size < allSize  use new super_size: $super_size"
+    # fi
+    super_size=`echo "$sSize / 1048576 * 1048576 + 1048576 * 16" | bc`
 
     argvs+="--device super:$super_size "
-    if [ "$super_type" = "VAB" ] || [ "$super_type" = "AB" ];then
-        argvs+="--metadata-slots 3 "
-        argvs+="--group ${super_group}_a:$super_size "
-        argvs+="--group ${super_group}_b:$super_size "
+    groupSize=$(echo "$super_size-1048576" | bc)
+    if [ "$super_type" = "VAB" ] || [ "$super_type" = "AB" ]; then
+        argvs+="--metadata-slots 3 --virtual-ab "
+        argvs+="--group ${super_group}_a:$groupSize "
+        argvs+="--group ${super_group}_b:$groupSize "
     else
         argvs+="--metadata-slots 2 "
-        argvs+="--group ${super_group}:$super_size "
+        argvs+="--group ${super_group}:$groupSize "
     fi
-    if [ "$super_type" = "VAB" ];then
-    	argvs+="--virtual-ab "
+
+    if [ -f "$super_dir/super.img" ]; then
+        rm -rf $super_dir/super.img
     fi
-    if [ -f "$super_dir/super.img" ];then
-      rm -rf $super_dir/super.img
-    fi
-    echo "设置的super镜像大小为: ${super_size}"
-    echo "所有要打包为super镜像和需要大小为: $sSize"
     argvs+="-F --output $super_dir/super.img"
-    scripts/lpmake $argvs > error.txt 2>&1
-    if [ -f "$super_dir/super.img" ];then
-        echo "成功打包 super.img"
+    if [ ! -d tmp ]; then
+        mkdir tmp
+    fi
+    lpmake $argvs >tmp/make_super.txt 2>&1
+    if [ -f "$super_dir/super.img" ]; then
+        echo "successfully repack super.img"
     else
-        cat error.txt
-        echo "失败打包 super.img"
+        cat tmp/make_super.txt
+        error "fail pack super.img"
+        exit 1
     fi
 }

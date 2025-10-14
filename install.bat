@@ -1,183 +1,209 @@
 @echo off
 setlocal enabledelayedexpansion
-mode con cols=75 lines=138&color 0a
+mode con cols=75 lines=138&color 03
 powershell -Command "$host.UI.RawUI.WindowSize = New-Object Management.Automation.Host.Size(75, 30)"
-title µ×²ãºÍÏµÍ³Ë¢Èë   by zhlhlf
+title åº•å±‚å’Œç³»ç»Ÿåˆ·å…¥   by zhlhlf
+
+:: å…¨å±€å˜é‡ï¼Œæ ‡è®°æ˜¯å¦ä¸ºå®˜æ–¹åˆ·å…¥æ¨¡å¼
+set "OFFICIAL_MODE="
 
 goto main
 
 :main
 cls
 echo --------------------------------------------------------
-echo ±¾³ÌĞòÎªab·ÖÇø µ×²ãË¢ÈëºÍÏµÍ³Ë¢Èë¹¤¾ß
-echo ÇëÈ·ÈÏÊÖ»úÔÚfastbootÄ£Ê½ÏÂ
-echo ÇëÈ·ÈÏ×Ô¼ºÊÖ»úÄÚ´æÀàĞÍ ±ğÏ¹¼¦¶ùÂÒË¢ Ë¢´íµ×²ãÎª×©
+echo æœ¬ç¨‹åºä¸ºæ¬§åŠ çœŸabåˆ†åŒº åº•å±‚å’Œç³»ç»Ÿåˆ·å…¥å·¥å…·
+echo è¯·ç¡®è®¤æ‰‹æœºåœ¨fastboot or bootloaderæ¨¡å¼ä¸‹
 echo                                            ----by zhlhlf
 echo --------------------------------------------------------
 echo --------------------------------------------------------
-echo                       ÇëÊäÈë
+echo                       è¯·è¾“å…¥
 echo.
-echo 1.ÊäÈë"ddr4",ÔòÊÇË¢Èëddr4ÄÚ´æĞÍµÄµ×²ã¡£
-echo 2.ÊäÈë"ddr5",ÔòÊÇË¢Èëddr5ÄÚ´æĞÍµÄµ×²ã¡£
-echo 3.ÊäÈë"1",ÔòË¢ÈëÏµÍ³¡£
-echo 4.ÊäÈë"0"ÔòÎªÍË³ö¡£
+echo 1.åˆ·å…¥FWå’ŒROMï¼ˆå®Œæ•´åˆ·æœº éå®˜æ–¹ï¼‰
+echo 2.åˆ·å…¥FWå’ŒROMï¼ˆå®Œæ•´åˆ·æœº å®˜æ–¹åŒ…ï¼‰
+echo 3.ä»…åˆ·å…¥FWï¼ˆåº•å±‚ï¼‰
+echo 4.ä»…åˆ·å…¥ROMï¼ˆç³»ç»Ÿï¼‰
+echo 5.æ¸…é™¤dataæ•°æ®ï¼ˆéœ€åœ¨fastbootdæ¨¡å¼ï¼‰
+echo 0.é€€å‡ºç¨‹åº
 echo --------------------------------------------------------
 echo.
 echo.
-set /p id="ÇëÊäÈëÑ¡Ïî£º"
 
-set "options[0]=ddr4"
-set "options[1]=ddr5"
-set "options[2]=1"
-set "options[3]=0"
+:input
+set /p "id=è¯·è¾“å…¥é€‰é¡¹ï¼š"
+if not defined id goto input
 
-set "labels[0]=ddr4"
-set "labels[1]=ddr5"
-set "labels[2]=system"
-set "labels[3]=exit"
+rem å®šä¹‰é€‰é¡¹ä¸å¯¹åº”æ ‡ç­¾çš„æ˜ å°„å…³ç³»
+set "options=1:fw_and_rom 2:fw_and_rom1 3:fw 4:rom 5:wipe_data 0:exit"
 
-for /l %%i in (0,1,3) do (
-    if "%id%"=="!options[%%i]!" (
-        goto !labels[%%i]!
+for %%a in (%options%) do (
+    for /f "tokens=1,2 delims=:" %%b in ("%%a") do (
+        if "%id%"=="%%b" (
+            call :%%c
+        )
     )
 )
 
-goto main
-
-:ddr4
-echo --------------------------------------------------------
-echo Ë¢Èëddr4µÄµ×²ã...
-echo --------------------------------------------------------
-#tools\fastboot reboot fastboot
-
-call :fw
-set list=xbl_config xbl imagefv
-for %%i in (!list!) do (
-    tools\fastboot flash %%i firmware-update\%%i.img
-)
-
-cls
-echo --------------------------------------------------------
-echo "Ë¢Èëµ×²ãÍê³É        ÄãË¢µÄÀàĞÍÊÇ  %id%"  
-echo --------------------------------------------------------
-pause
-
-goto main
-
-:ddr5
-echo --------------------------------------------------------
-echo Ë¢Èëddr5µÄµ×²ã...
-echo --------------------------------------------------------
-tools\fastboot reboot fastboot
-
-call :fw
-set list=xbl_config xbl imagefv
-for %%i in (!list!) do (
-    set "partition=%%i"
-    set "partition_final=!partition!_ddr5"
-    tools\fastboot flash %%i firmware-update\!partition_final!.img
-)
-
-cls
-echo --------------------------------------------------------
-echo "Ë¢Èëµ×²ãÍê³É        ÄãË¢µÄÀàĞÍÊÇ  %id%"  
-echo --------------------------------------------------------
 pause
 goto main
 
+:: éå®˜æ–¹åˆ·å…¥ï¼ˆç¦ç”¨éªŒè¯ï¼‰
+:fw_and_rom
+echo æ­£åœ¨åˆ·å…¥fwå’Œrom...
+set "OFFICIAL_MODE=false"
+call :fw
+call :rom
+call :wipe_data
+echo.é‡å¯..
+tools\fastboot reboot
+pause
+goto :eof
+
+:: å®˜æ–¹åˆ·å…¥ï¼ˆä¿æŒéªŒè¯ï¼‰
+:fw_and_rom1
+echo æ­£åœ¨åˆ·å…¥fwå’Œrom...
+set "OFFICIAL_MODE=true"
+call :fw
+call :rom
+call :wipe_data
+echo.é‡å¯..
+tools\fastboot reboot
+pause
+goto :eof
 
 :fw
-set list=abl aop bluetooth cmnlib cmnlib64 devcfg dsp featenabler hyp imagefv keymaster logo mdm_oem_stanvbk modem multiimgoem qupfw spunvm storsec tz uefisecapp xbl xbl_config recovery
+cls
+set fw_path=firmware-update
+tools\adb shell reboot bootloader >nul 2>&1
 
-for %%i in (!list!) do (
-    if exist firmware-update\%%i.img (
-        tools\fastboot flash %%i firmware-update\%%i.img
-    ) else (
-        echo firmware-update/%%i.img ²»´æÔÚ
+if exist %fw_path%\modem.img (
+    echo åˆ·å…¥modemä¸­..
+    tools\fastboot flash modem %fw_path%\modem.img
+)
+
+echo è¿›å…¥fastboot...
+tools\fastboot reboot fastboot
+
+for %%i in (%fw_path%\*.img) do (
+    set filename=%%~nxi
+    set filename=!filename:modem=!
+
+    if "!filename!"=="%%~nxi" (
+        set filename=%%~ni
+        tools\fastboot flash !filename! %%i
     )
+)
+
+echo --------------------------------------------------------
+echo "åˆ·å…¥fwåº•å±‚å®Œæˆ"
+echo --------------------------------------------------------
+goto :eof
+
+
+:wipe_data
+echo æ˜¯å¦æ¸…é™¤dataæ•°æ®ï¼Ÿ
+:confirm_input
+set /p "confirm=è¯·è¾“å…¥[y/n]ï¼š"
+if /i "%confirm%"=="y" (
+    echo æ­£åœ¨æ¸…é™¤dataæ•°æ®...
+    tools\fastboot -w
+    echo dataæ•°æ®å·²æ¸…é™¤ï¼
+    goto :eof
+) else if /i "%confirm%"=="n" (
+    echo å·²å–æ¶ˆæ“ä½œã€‚
+    goto :eof
+) else (
+    echo è¾“å…¥æ— æ•ˆï¼Œè¯·é‡æ–°è¾“å…¥ï¼
+    goto confirm_input
 )
 goto :eof
 
-:system
+:wipe_logic_part
+echo æ¸…é™¤æ‰€æœ‰åŠ¨æ€åˆ†åŒº...
+for /f "tokens=2 delims=:" %%a in ('tools\fastboot getvar all 2^>^&1 ^| findstr /r /c:"(bootloader) is-logical:.*:yes"') do (
+    tools\fastboot delete-logical-partition %%a
+)
+goto :eof
+
+:rom
 cls
 echo --------------------------------------------------------
-echo Ë¢ÈëÏµÍ³µÈ²Ù×÷...
+echo åˆ·å…¥ç³»ç»Ÿç­‰æ“ä½œ...
 echo ---------------------------------------------------------
+
+set images_path=images
+set "flash_files="
+set "slot="
 
 if exist images\super.zst tools\zstd --rm -d images\super.zst -o images\super.img
 if exist images\super.img (
     tools\fastboot flash super images\super.img
 ) else (
-
-    set list=odm system system_ext product vendor 
-    set list2=my_bigball my_carrier my_company my_engineering my_heytap my_manifest my_preload my_product my_region my_stock
-
-    echo Çå³ıÂß¼­·ÖÇø...
-
-    for %%i in (!list!) do (
-        set "partition=%%i"
-        set "partition_cow=%%i-cow"
-        set "partition_a=!partition!_a"
-        set "partition_b=!partition!_b"
-        tools\fastboot delete-logical-partition !partition_a!
-        tools\fastboot delete-logical-partition !partition_b!
-        tools\fastboot delete-logical-partition !partition_cow!
+    for /f "tokens=2 delims=: " %%i in ('tools\fastboot getvar current-slot 2^>^&1 ^| findstr /r /c:"current-slot:"') do (
+        set slot=%%i
     )
 
-    for %%i in (!list2!) do (
-        set "partition=%%i"
-        set "partition_cow=%%i-cow"
-        set "partition_a=!partition!_a"
-        set "partition_b=!partition!_b"
-        tools\fastboot delete-logical-partition !partition_a!
-        tools\fastboot delete-logical-partition !partition_b!
-        tools\fastboot delete-logical-partition !partition_cow!
+    if "!slot!"=="" (
+        echo æœªèƒ½è·å–å½“å‰æ§½ä½ä¿¡æ¯ æŒ‰ä»»æ„é”®é€€å‡ºï¼ã€‚
+        pause
+        exit /b 1
     )
+    call :wipe_logic_part
 
-    cls
+    echo åˆ›å»ºæ‰€éœ€åŠ¨æ€åˆ†åŒº...
+    for %%i in (%images_path%\*.img) do (
+        set filename=%%~nxi
+        set filename=!filename:vbmeta=!
+        set filename=!filename:boot=!
+        set filename=!filename:dtbo=!
 
-    echo Ë¢Èë·ÖÇø...
-
-    for %%i in (!list!) do (
-        set "partition=%%i"
-        set "partition_a=!partition!_a"
-        set "partition_b=!partition!_b"
-        tools\fastboot create-logical-partition !partition_a! 1
-        tools\fastboot create-logical-partition !partition_b! 1
-        tools\fastboot flash %%i images\%%i.img
-    )
-
-    if exist images\my_product.img (
-        for %%i in (!list2!) do (
-            set "partition=%%i"
-            set "partition_a=!partition!_a"
-            set "partition_b=!partition!_b"
-            tools\fastboot create-logical-partition !partition_a! 1
-            tools\fastboot create-logical-partition !partition_b! 1
-            tools\fastboot flash %%i images\%%i.img
+        if "!filename!"=="%%~nxi" (
+            ::  é€»è¾‘åˆ†åŒºéƒ¨åˆ†
+            set filename=%%~ni
+            set "partition=!filename!"
+            set "flash_files=!flash_files! !partition!"
+            set "partition=!filename!_!slot!"
+            tools\fastboot create-logical-partition !partition! 1
         )
     )
+    echo super_list: !flash_files!
+    echo åˆ·å…¥images...
+    for %%i in (!flash_files!) do (
+        tools\fastboot flash %%i images\%%i.img
+    )
 )
 
-set list=boot dtbo
-for %%i in (!list!) do (
-    tools\fastboot flash %%i images\%%i.img
+for %%i in (
+    "%images_path%\*boot*.img"
+    "%images_path%\dtbo.img"
+) do (
+    if exist "%%i" (
+        set "filename=%%~ni"
+        tools\fastboot flash !filename! "%%i"
+    )
 )
 
-set list=vbmeta vbmeta_system
-for %%i in (!list!) do (
-    tools\fastboot flash %%i images\%%i.img --disable-verity --disable-verification 
+:: æ ¹æ®å®˜æ–¹/éå®˜æ–¹æ¨¡å¼å†³å®švbmetaåˆ·å…¥æ–¹å¼
+for %%i in ("%images_path%\vbmeta*.img") do (
+    set "filename=%%~ni"
+    if "!OFFICIAL_MODE!"=="true" (
+        echo [å®˜æ–¹æ¨¡å¼] åˆ·å…¥ !filename! ä¸å¸¦éªŒè¯å‚æ•°
+        tools\fastboot flash !filename! "%%i"
+    ) else (
+        echo [éå®˜æ–¹æ¨¡å¼] åˆ·å…¥ !filename! å¸¦--disable-verity --disable-verificationå‚æ•°
+        tools\fastboot flash !filename! "%%i" --disable-verity --disable-verification
+    )
 )
 
-echo.ÖØÆôµ½rec...
-tools\fastboot reboot recovery
-pause
-goto main
+call :wipe_data
+
+goto :eof
+
 
 :exit
-echo --------------------------------------------------------
-echo                                    ï¿½ï¿½ï¿½ï¿½ï¿½Ë³ï¿½...
-echo --------------------------------------------------------
+
 exit
+
+
 
 endlocal
