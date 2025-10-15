@@ -23,13 +23,13 @@ make_super() {
         sSize=$(echo "$sSize+$img_size" | bc)
         echo "Super sub-partition [$image] size: [$img_size]"
     done
-    echo "super_type: $super_type  slot: $super_slot  set-size: ${super_size} allSize: $sSize"
 
-    # if [ $sSize -lt $super_size ];then
-    #     super_size=`echo "$sSize / 1048576 * 1048576 + 1048576 * 16" | bc`
-    #     echo "super_size < allSize  use new super_size: $super_size"
-    # fi
-    super_size=`echo "$sSize / 1048576 * 1048576 + 1048576 * 16" | bc`
+    #获取手机分区super的大小
+    size2=`sgdisk /dev/block/sda --print | grep super | awk '{print $3}'`
+    size1=`sgdisk /dev/block/sda --print | grep super | awk '{print $2}'`
+    super_size=`echo "($size2 - $size1 + 1) * 4096" | bc`
+
+    echo "super_type: $super_type  slot: $super_slot  set-size: ${super_size} allSize: $sSize"
 
     argvs+="--device super:$super_size "
     groupSize=$(echo "$super_size-1048576" | bc)
