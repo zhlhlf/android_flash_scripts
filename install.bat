@@ -2,9 +2,9 @@
 setlocal enabledelayedexpansion
 mode con cols=75 lines=138&color 03
 powershell -Command "$host.UI.RawUI.WindowSize = New-Object Management.Automation.Host.Size(75, 30)"
-title åº•å±‚å’Œç³»ç»Ÿåˆ·å…¥   by zhlhlf
+title µ×²ãºÍÏµÍ³Ë¢Èë   by zhlhlf
 
-:: å…¨å±€å˜é‡ï¼Œæ ‡è®°æ˜¯å¦ä¸ºå®˜æ–¹åˆ·å…¥æ¨¡å¼
+:: È«¾Ö±äÁ¿£¬±ê¼ÇÊÇ·ñÎª¹Ù·½Ë¢ÈëÄ£Ê½
 set "OFFICIAL_MODE="
 
 goto main
@@ -12,28 +12,28 @@ goto main
 :main
 cls
 echo --------------------------------------------------------
-echo æœ¬ç¨‹åºä¸ºæ¬§åŠ çœŸabåˆ†åŒº åº•å±‚å’Œç³»ç»Ÿåˆ·å…¥å·¥å…·
-echo è¯·ç¡®è®¤æ‰‹æœºåœ¨fastboot or bootloaderæ¨¡å¼ä¸‹
+echo ±¾³ÌĞòÎªÅ·¼ÓÕæab·ÖÇø µ×²ãºÍÏµÍ³Ë¢Èë¹¤¾ß
+echo ÇëÈ·ÈÏÊÖ»úÔÚfastboot or bootloaderÄ£Ê½ÏÂ
 echo                                            ----by zhlhlf
 echo --------------------------------------------------------
 echo --------------------------------------------------------
-echo                       è¯·è¾“å…¥
+echo                       ÇëÊäÈë
 echo.
-echo 1.åˆ·å…¥FWå’ŒROMï¼ˆå®Œæ•´åˆ·æœº éå®˜æ–¹ï¼‰
-echo 2.åˆ·å…¥FWå’ŒROMï¼ˆå®Œæ•´åˆ·æœº å®˜æ–¹åŒ…ï¼‰
-echo 3.ä»…åˆ·å…¥FWï¼ˆåº•å±‚ï¼‰
-echo 4.ä»…åˆ·å…¥ROMï¼ˆç³»ç»Ÿï¼‰
-echo 5.æ¸…é™¤dataæ•°æ®ï¼ˆéœ€åœ¨fastbootdæ¨¡å¼ï¼‰
-echo 0.é€€å‡ºç¨‹åº
+echo 1.Ë¢ÈëFWºÍROM£¨ÍêÕûË¢»ú ·Ç¹Ù·½£©
+echo 2.Ë¢ÈëFWºÍROM£¨ÍêÕûË¢»ú ¹Ù·½°ü£©
+echo 3.½öË¢ÈëFW£¨µ×²ã£©
+echo 4.½öË¢ÈëROM£¨ÏµÍ³£©
+echo 5.Çå³ıdataÊı¾İ£¨ĞèÔÚfastbootdÄ£Ê½£©
+echo 0.ÍË³ö³ÌĞò
 echo --------------------------------------------------------
 echo.
 echo.
 
 :input
-set /p "id=è¯·è¾“å…¥é€‰é¡¹ï¼š"
+set /p "id=ÇëÊäÈëÑ¡Ïî£º"
 if not defined id goto input
 
-rem å®šä¹‰é€‰é¡¹ä¸å¯¹åº”æ ‡ç­¾çš„æ˜ å°„å…³ç³»
+rem ¶¨ÒåÑ¡ÏîÓë¶ÔÓ¦±êÇ©µÄÓ³Éä¹ØÏµ
 set "options=1:fw_and_rom 2:fw_and_rom1 3:fw 4:rom 5:wipe_data 0:exit"
 
 for %%a in (%options%) do (
@@ -47,26 +47,26 @@ for %%a in (%options%) do (
 pause
 goto main
 
-:: éå®˜æ–¹åˆ·å…¥ï¼ˆç¦ç”¨éªŒè¯ï¼‰
+:: ·Ç¹Ù·½Ë¢Èë£¨½ûÓÃÑéÖ¤£©
 :fw_and_rom
-echo æ­£åœ¨åˆ·å…¥fwå’Œrom...
+echo ÕıÔÚË¢ÈëfwºÍrom...
 set "OFFICIAL_MODE=false"
 call :fw
 call :rom
 call :wipe_data
-echo.é‡å¯..
+echo.ÖØÆô..
 tools\fastboot reboot
 pause
 goto :eof
 
-:: å®˜æ–¹åˆ·å…¥ï¼ˆä¿æŒéªŒè¯ï¼‰
+:: ¹Ù·½Ë¢Èë£¨±£³ÖÑéÖ¤£©
 :fw_and_rom1
-echo æ­£åœ¨åˆ·å…¥fwå’Œrom...
+echo ÕıÔÚË¢ÈëfwºÍrom...
 set "OFFICIAL_MODE=true"
 call :fw
 call :rom
 call :wipe_data
-echo.é‡å¯..
+echo.ÖØÆô..
 tools\fastboot reboot
 pause
 goto :eof
@@ -77,11 +77,11 @@ set fw_path=firmware-update
 tools\adb shell reboot bootloader >nul 2>&1
 
 if exist %fw_path%\modem.img (
-    echo åˆ·å…¥modemä¸­..
+    echo Ë¢ÈëmodemÖĞ..
     tools\fastboot flash modem %fw_path%\modem.img
 )
 
-echo è¿›å…¥fastboot...
+echo ½øÈëfastboot...
 tools\fastboot reboot fastboot
 
 for %%i in (%fw_path%\*.img) do (
@@ -95,31 +95,31 @@ for %%i in (%fw_path%\*.img) do (
 )
 
 echo --------------------------------------------------------
-echo "åˆ·å…¥fwåº•å±‚å®Œæˆ"
+echo "Ë¢Èëfwµ×²ãÍê³É"
 echo --------------------------------------------------------
 goto :eof
 
 
 :wipe_data
-echo æ˜¯å¦æ¸…é™¤dataæ•°æ®ï¼Ÿ
+echo ÊÇ·ñÇå³ıdataÊı¾İ£¿
 :confirm_input
-set /p "confirm=è¯·è¾“å…¥[y/n]ï¼š"
+set /p "confirm=ÇëÊäÈë[y/n]£º"
 if /i "%confirm%"=="y" (
-    echo æ­£åœ¨æ¸…é™¤dataæ•°æ®...
+    echo ÕıÔÚÇå³ıdataÊı¾İ...
     tools\fastboot -w
-    echo dataæ•°æ®å·²æ¸…é™¤ï¼
+    echo dataÊı¾İÒÑÇå³ı£¡
     goto :eof
 ) else if /i "%confirm%"=="n" (
-    echo å·²å–æ¶ˆæ“ä½œã€‚
+    echo ÒÑÈ¡Ïû²Ù×÷¡£
     goto :eof
 ) else (
-    echo è¾“å…¥æ— æ•ˆï¼Œè¯·é‡æ–°è¾“å…¥ï¼
+    echo ÊäÈëÎŞĞ§£¬ÇëÖØĞÂÊäÈë£¡
     goto confirm_input
 )
 goto :eof
 
 :wipe_logic_part
-echo æ¸…é™¤æ‰€æœ‰åŠ¨æ€åˆ†åŒº...
+echo Çå³ıËùÓĞ¶¯Ì¬·ÖÇø...
 for /f "tokens=2 delims=:" %%a in ('tools\fastboot getvar all 2^>^&1 ^| findstr /r /c:"(bootloader) is-logical:.*:yes"') do (
     tools\fastboot delete-logical-partition %%a
 )
@@ -128,7 +128,7 @@ goto :eof
 :rom
 cls
 echo --------------------------------------------------------
-echo åˆ·å…¥ç³»ç»Ÿç­‰æ“ä½œ...
+echo Ë¢ÈëÏµÍ³µÈ²Ù×÷...
 echo ---------------------------------------------------------
 
 set images_path=images
@@ -144,13 +144,13 @@ if exist images\super.img (
     )
 
     if "!slot!"=="" (
-        echo æœªèƒ½è·å–å½“å‰æ§½ä½ä¿¡æ¯ æŒ‰ä»»æ„é”®é€€å‡ºï¼ã€‚
+        echo Î´ÄÜ»ñÈ¡µ±Ç°²ÛÎ»ĞÅÏ¢ °´ÈÎÒâ¼üÍË³ö£¡¡£
         pause
         exit /b 1
     )
     call :wipe_logic_part
 
-    echo åˆ›å»ºæ‰€éœ€åŠ¨æ€åˆ†åŒº...
+    echo ´´½¨ËùĞè¶¯Ì¬·ÖÇø...
     for %%i in (%images_path%\*.img) do (
         set filename=%%~nxi
         set filename=!filename:vbmeta=!
@@ -158,7 +158,7 @@ if exist images\super.img (
         set filename=!filename:dtbo=!
 
         if "!filename!"=="%%~nxi" (
-            ::  é€»è¾‘åˆ†åŒºéƒ¨åˆ†
+            ::  Âß¼­·ÖÇø²¿·Ö
             set filename=%%~ni
             set "partition=!filename!"
             set "flash_files=!flash_files! !partition!"
@@ -167,7 +167,7 @@ if exist images\super.img (
         )
     )
     echo super_list: !flash_files!
-    echo åˆ·å…¥images...
+    echo Ë¢Èëimages...
     for %%i in (!flash_files!) do (
         tools\fastboot flash %%i images\%%i.img
     )
@@ -183,14 +183,14 @@ for %%i in (
     )
 )
 
-:: æ ¹æ®å®˜æ–¹/éå®˜æ–¹æ¨¡å¼å†³å®švbmetaåˆ·å…¥æ–¹å¼
+:: ¸ù¾İ¹Ù·½/·Ç¹Ù·½Ä£Ê½¾ö¶¨vbmetaË¢Èë·½Ê½
 for %%i in ("%images_path%\vbmeta*.img") do (
     set "filename=%%~ni"
     if "!OFFICIAL_MODE!"=="true" (
-        echo [å®˜æ–¹æ¨¡å¼] åˆ·å…¥ !filename! ä¸å¸¦éªŒè¯å‚æ•°
+        echo [¹Ù·½Ä£Ê½] Ë¢Èë !filename! ²»´øÑéÖ¤²ÎÊı
         tools\fastboot flash !filename! "%%i"
     ) else (
-        echo [éå®˜æ–¹æ¨¡å¼] åˆ·å…¥ !filename! å¸¦--disable-verity --disable-verificationå‚æ•°
+        echo [·Ç¹Ù·½Ä£Ê½] Ë¢Èë !filename! ´ø--disable-verity --disable-verification²ÎÊı
         tools\fastboot flash !filename! "%%i" --disable-verity --disable-verification
     )
 )
