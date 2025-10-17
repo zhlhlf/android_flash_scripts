@@ -164,7 +164,33 @@ ui_print "fw all write yes"
 ui_print " "
 
 # 刷入*boot* *vbmeta* dtbo
-if [ `exist "images/boot.img"` = 1 ];then
+if [ `exist "images/boot.img"` = 0 ];then
+    exit 0
+fi
+
+#刷入super并刷入images剩余部分
+unzip -q "$ZIPFILE" scripts/*
+export PATH=$(pwd)/scripts:$PATH
+chmod 777 * -R
+
+if [ `exist "images/super."` = 1 ];then
+    _ab=a
+    for i in `cat $img_list | grep -e "boot" -e "vbmeta" -e "dtbo"`
+    do
+        flash_image $i
+    done
+    #flash super..
+    if [ `exist "images/super.zst"` = 1 ];then
+        package_extract_zstd "images/super.zst" "$pt_dir/super"
+    elif [ `exist "images/super.img"` = 1 ];then
+        package_extract_file images/super.img $pt_dir/super
+    fi
+    
+elif [ `exist "images/system.img"` = 1 ];then
+
+    check_datasize 
+
+    #根据选择a b 刷入boot vbmeta dtbo等
     ui_print "flash rom  -> a or b?    + is a   ||  - is b"
     ui_print " "
     _ab=$(keyListener)
@@ -178,24 +204,6 @@ if [ `exist "images/boot.img"` = 1 ];then
     do
         flash_image $i
     done
-fi
-
-#刷入super并刷入images剩余部分
-unzip -q "$ZIPFILE" scripts/*
-export PATH=$(pwd)/scripts:$PATH
-chmod 777 * -R
-
-if [ `exist "images/super."` = 1 ];then
-    #flash super..
-    if [ `exist "images/super.zst"` = 1 ];then
-        package_extract_zstd "images/super.zst" "$pt_dir/super"
-    elif [ `exist "images/super.img"` = 1 ];then
-        package_extract_file images/super.img $pt_dir/super
-    fi
-    
-elif [ `exist "images/system.img"` = 1 ];then
-
-    check_datasize 
 
     ui_print "extarct images/* ..."
 
