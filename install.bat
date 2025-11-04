@@ -6,6 +6,7 @@ title 底层和系统刷入   by zhlhlf
 
 :: 全局变量，标记是否为官方刷入模式
 set "OFFICIAL_MODE="
+set "PATH=tools;%PATH%"
 
 goto main
 
@@ -53,10 +54,8 @@ echo 正在刷入fw和rom...
 set "OFFICIAL_MODE=false"
 call :fw
 call :rom
-call :wipe_data
 echo.重启..
-tools\fastboot reboot
-pause
+fastboot reboot
 goto :eof
 
 :: 官方刷入（保持验证）
@@ -65,24 +64,22 @@ echo 正在刷入fw和rom...
 set "OFFICIAL_MODE=true"
 call :fw
 call :rom
-call :wipe_data
 echo.重启..
-tools\fastboot reboot
-pause
+fastboot reboot
 goto :eof
 
 :fw
 cls
 set fw_path=firmware-update
-tools\adb shell reboot bootloader >nul 2>&1
+adb shell reboot bootloader >nul 2>&1
 
 if exist %fw_path%\modem.img (
     echo 刷入modem中..
-    tools\fastboot flash modem %fw_path%\modem.img
+    fastboot flash modem %fw_path%\modem.img
 )
 
 echo 进入fastboot...
-tools\fastboot reboot fastboot
+fastboot reboot fastboot
 
 for %%i in (%fw_path%\*.img) do (
     set filename=%%~nxi
@@ -90,7 +87,7 @@ for %%i in (%fw_path%\*.img) do (
 
     if "!filename!"=="%%~nxi" (
         set filename=%%~ni
-        tools\fastboot flash !filename! %%i
+        fastboot flash !filename! %%i
     )
 )
 
@@ -106,7 +103,7 @@ echo 是否清除data数据？
 set /p "confirm=请输入[y/n]："
 if /i "%confirm%"=="y" (
     echo 正在清除data数据...
-    tools\fastboot -w
+    fastboot -w
     echo data数据已清除！
     goto :eof
 ) else if /i "%confirm%"=="n" (
@@ -120,8 +117,8 @@ goto :eof
 
 :wipe_logic_part
 echo 清除所有动态分区...
-for /f "tokens=2 delims=:" %%a in ('tools\fastboot getvar all 2^>^&1 ^| findstr /r /c:"(bootloader) is-logical:.*:yes"') do (
-    tools\fastboot delete-logical-partition %%a
+for /f "tokens=2 delims=:" %%a in ('fastboot getvar all 2^>^&1 ^| findstr /r /c:"(bootloader) is-logical:.*:yes"') do (
+    fastboot delete-logical-partition %%a
 )
 goto :eof
 
@@ -135,11 +132,11 @@ set images_path=images
 set "flash_files="
 set "slot="
 
-if exist images\super.zst tools\zstd --rm -d images\super.zst -o images\super.img
+if exist images\super.zst zstd --rm -d images\super.zst -o images\super.img
 if exist images\super.img (
-    tools\fastboot flash super images\super.img
+    fastboot flash super images\super.img
 ) else (
-    for /f "tokens=2 delims=: " %%i in ('tools\fastboot getvar current-slot 2^>^&1 ^| findstr /r /c:"current-slot:"') do (
+    for /f "tokens=2 delims=: " %%i in ('fastboot getvar current-slot 2^>^&1 ^| findstr /r /c:"current-slot:"') do (
         set slot=%%i
     )
 
@@ -163,13 +160,13 @@ if exist images\super.img (
             set "partition=!filename!"
             set "flash_files=!flash_files! !partition!"
             set "partition=!filename!_!slot!"
-            tools\fastboot create-logical-partition !partition! 1
+            fastboot create-logical-partition !partition! 1
         )
     )
     echo super_list: !flash_files!
     echo 刷入images...
     for %%i in (!flash_files!) do (
-        tools\fastboot flash %%i images\%%i.img
+        fastboot flash %%i images\%%i.img
     )
 )
 
@@ -179,7 +176,7 @@ for %%i in (
 ) do (
     if exist "%%i" (
         set "filename=%%~ni"
-        tools\fastboot flash !filename! "%%i"
+        fastboot flash !filename! "%%i"
     )
 )
 
@@ -188,10 +185,10 @@ for %%i in ("%images_path%\vbmeta*.img") do (
     set "filename=%%~ni"
     if "!OFFICIAL_MODE!"=="true" (
         echo [官方模式] 刷入 !filename! 不带验证参数
-        tools\fastboot flash !filename! "%%i"
+        fastboot flash !filename! "%%i"
     ) else (
         echo [非官方模式] 刷入 !filename! 带--disable-verity --disable-verification参数
-        tools\fastboot flash !filename! "%%i" --disable-verity --disable-verification
+        fastboot flash !filename! "%%i" --disable-verity --disable-verification
     )
 )
 
