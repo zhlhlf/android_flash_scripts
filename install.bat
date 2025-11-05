@@ -88,6 +88,7 @@ for %%i in (%fw_path%\*.img) do (
     if "!filename!"=="%%~nxi" (
         set filename=%%~ni
         fastboot flash !filename! %%i
+        sleep 0.2
     )
 )
 
