@@ -1,22 +1,22 @@
 @echo off
 mode con cols=75 lines=35&color 03
-title åº•å±‚å’Œç³»ç»Ÿå®‰è£…å™¨   by zhlhlf
+title µ×²ãºÍÏµÍ³°²×°Æ÷   by zhlhlf
 goto main
 :main
 cls
 echo --------------------------------------------------------
-echo æœ¬ç¨‹åºä¸ºä¸€åŠ 9r åº•å±‚å®‰è£…å’Œç³»ç»Ÿåˆ·å…¥å·¥å…·(å•Aåˆ†åŒºç‰ˆ)
-echo è¯·ç¡®è®¤æ‰‹æœºåœ¨bootloaderæ¨¡å¼ä¸‹
-echo è¯·ç¡®è®¤è‡ªå·±æ‰‹æœºå†…å­˜ç±»å‹ åˆ«çé¸¡å„¿ä¹±åˆ· åˆ·é”™åº•å±‚ä¸ºç –
+echo ±¾³ÌĞòÎªÒ»¼Ó9r µ×²ã°²×°ºÍÏµÍ³Ë¢Èë¹¤¾ß(µ¥A·ÖÇø°æ)
+echo ÇëÈ·ÈÏÊÖ»úÔÚbootloaderÄ£Ê½ÏÂ
+echo ÇëÈ·ÈÏ×Ô¼ºÊÖ»úÄÚ´æÀàĞÍ ±ğÏ¹¼¦¶ùÂÒË¢ Ë¢´íµ×²ãÎª×©
 echo                                            ----by zhlhlf
 echo --------------------------------------------------------
 echo --------------------------------------------------------
-echo                       è¯·è¾“å…¥
+echo                       ÇëÊäÈë
 echo.
-echo 1.è¾“å…¥"ddr4",åˆ™æ˜¯å®‰è£…ddr4å†…å­˜å‹çš„åº•å±‚ã€‚
-echo 2.è¾“å…¥"ddr5",åˆ™æ˜¯å®‰è£…ddr5å†…å­˜å‹çš„åº•å±‚ã€‚
-echo 3.è¾“å…¥"1",åˆ™å®‰è£…ç³»ç»Ÿã€‚
-echo 4.è¾“å…¥"0"åˆ™ä¸ºé€€å‡ºã€‚
+echo 1.ÊäÈë"ddr4",ÔòÊÇ°²×°ddr4ÄÚ´æĞÍµÄµ×²ã¡£
+echo 2.ÊäÈë"ddr5",ÔòÊÇ°²×°ddr5ÄÚ´æĞÍµÄµ×²ã¡£
+echo 3.ÊäÈë"1",Ôò°²×°ÏµÍ³¡£
+echo 4.ÊäÈë"0"ÔòÎªÍË³ö¡£
 echo --------------------------------------------------------
 set /p id=
 if "%id%"=="ddr4" set next_step=0
@@ -30,7 +30,7 @@ if %next_step%==3 goto exit
 
 :ddr4
 echo --------------------------------------------------------
-echo å®‰è£…ddr4çš„åº•å±‚...
+echo °²×°ddr4µÄµ×²ã...
 echo --------------------------------------------------------
 tools\fastboot flash oppo_sec firmware-update\oppo_sec.img
 tools\fastboot reboot fastboot
@@ -51,7 +51,7 @@ tools\fastboot flash modem firmware-update\modem.img
 tools\fastboot flash qupfw firmware-update\qupv3fw.img
 tools\fastboot flash splash firmware-update\splash.img
 tools\fastboot flash mdm_oem_stanvbk firmware-update\static_nvbk.img
-tools\fastboot flash storsec firmware-update\storsec.img || echo "æ­¤å¤„æŠ¥é”™å¯å¿½ç•¥"
+tools\fastboot flash storsec firmware-update\storsec.img || echo "´Ë´¦±¨´í¿ÉºöÂÔ"
 tools\fastboot flash tz firmware-update\tz.img
 
 tools\fastboot flash xbl_config firmware-update\xbl_config_ddr4.img
@@ -65,7 +65,7 @@ tools\fastboot flash vbmeta_system images\vbmeta_system.img --disable-verity --d
 tools\fastboot flash vbmeta_vendor images\vbmeta_vendor.img --disable-verity --disable-verification 
 cls
 echo --------------------------------------------------------
-echo "åˆ·å…¥åº•å±‚å®Œæˆ        ä½ åˆ·çš„ç±»å‹æ˜¯  %id%"  
+echo "Ë¢Èëµ×²ãÍê³É        ÄãË¢µÄÀàĞÍÊÇ  %id%"  
 echo --------------------------------------------------------
 pause
 cls
@@ -73,7 +73,7 @@ goto main
 
 :ddr5
 echo --------------------------------------------------------
-echo å®‰è£…ddr5çš„åº•å±‚...
+echo °²×°ddr5µÄµ×²ã...
 echo --------------------------------------------------------
 tools\fastboot flash oppo_sec firmware-update\oppo_sec.img
 tools\fastboot reboot fastboot
@@ -94,7 +94,7 @@ tools\fastboot flash modem firmware-update\modem.img
 tools\fastboot flash qupfw firmware-update\qupv3fw.img
 tools\fastboot flash splash firmware-update\splash.img
 tools\fastboot flash mdm_oem_stanvbk firmware-update\static_nvbk.img
-tools\fastboot flash storsec firmware-update\storsec.img || echo "æ­¤å¤„æŠ¥é”™å¯å¿½ç•¥"
+tools\fastboot flash storsec firmware-update\storsec.img || echo "´Ë´¦±¨´í¿ÉºöÂÔ"
 tools\fastboot flash tz firmware-update\tz.img
 
 tools\fastboot flash xbl_config firmware-update\xbl_config_ddr5.img
@@ -108,16 +108,16 @@ tools\fastboot flash vbmeta images\vbmeta.img --disable-verity --disable-verific
 tools\fastboot flash vbmeta_system images\vbmeta_system.img --disable-verity --disable-verification 
 tools\fastboot flash vbmeta_vendor images\vbmeta_vendor.img --disable-verity --disable-verification 
 echo --------------------------------------------------------
-echo "åˆ·å…¥åº•å±‚å®Œæˆ        ä½ åˆ·çš„ç±»å‹æ˜¯  %id%"  
+echo "Ë¢Èëµ×²ãÍê³É        ÄãË¢µÄÀàĞÍÊÇ  %id%"  
 echo --------------------------------------------------------
 pause
 goto main
 
 :system
 echo --------------------------------------------------------
-echo å®‰è£…ç³»ç»Ÿç­‰æ“ä½œ...
+echo °²×°ÏµÍ³µÈ²Ù×÷...
 echo ---------------------------------------------------------
-echo æ¸…é™¤é€»è¾‘åˆ†åŒº...
+echo Çå³ıÂß¼­·ÖÇø...
 if exist images\super.zst tools\zstd --rm -d images\super.zst -o images\super.img
 if exist images\super.img (
     tools\fastboot flash super images\super.img
@@ -152,7 +152,7 @@ if exist images\super.img (
     tools\fastboot delete-logical-partition my_region-cow
     tools\fastboot delete-logical-partition my_stock-cow
     tools\fastboot delete-logical-partition my_bigball-cow
-    echo åˆ›å»ºå¹¶åˆ·å…¥é€»è¾‘åˆ†åŒº...
+    echo ´´½¨²¢Ë¢ÈëÂß¼­·ÖÇø...
     tools\fastboot create-logical-partition vendor 1
     tools\fastboot flash vendor images\vendor.img
     tools\fastboot create-logical-partition product 1
@@ -192,9 +192,9 @@ tools\fastboot flash vbmeta images\vbmeta.img --disable-verity --disable-verific
 tools\fastboot flash vbmeta_system images\vbmeta_system.img --disable-verity --disable-verification 
 tools\fastboot flash vbmeta_vendor images\vbmeta_vendor.img --disable-verity --disable-verification
 fastboot reboot recovery
-echo.æ­£åœ¨é‡å¯åˆ°twrp...
+echo.ÕıÔÚÖØÆôµ½twrp...
 echo --------------------------------------------------------
-echo æ‰€æœ‰åˆ·å…¥æ“ä½œå®Œæˆï¼Œè¯·æŒ‰å›è½¦å›åˆ°ä¸»ç•Œé¢ã€‚
+echo ËùÓĞË¢Èë²Ù×÷Íê³É£¬Çë°´»Ø³µ»Øµ½Ö÷½çÃæ¡£
 echo --------------------------------------------------------
 pause
 cls
@@ -202,6 +202,6 @@ goto main
 
 :exit
 echo --------------------------------------------------------
-echo                                    æ­£åœ¨é€€å‡º...
+echo                                    ÕıÔÚÍË³ö...
 echo --------------------------------------------------------
 exit
