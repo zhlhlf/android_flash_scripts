@@ -175,10 +175,7 @@ chmod 777 * -R
 
 if [ `exist "images/super."` = 1 ];then
     _ab=a
-    for i in `cat $img_list | grep -e "boot" -e "vbmeta" -e "dtbo"`
-    do
-        flash_image $i
-    done
+
     #flash super..
     if [ `exist "images/super.zst"` = 1 ];then
         package_extract_zstd "images/super.zst" "$pt_dir/super"
@@ -200,11 +197,6 @@ elif [ `exist "images/system.img"` = 1 ];then
       _ab=b
     fi
 
-    for i in `cat $img_list | grep -e "boot" -e "vbmeta" -e "dtbo"`
-    do
-        flash_image $i
-    done
-
     ui_print "extarct images/* ..."
 
     # 根据images里面剩余的镜像生成super
@@ -223,4 +215,11 @@ elif [ `exist "images/system.img"` = 1 ];then
     #开始生成和刷入super并刷入images剩余部分
     flash_super $_ab
 fi
-#rm -rf $tmp
+
+for i in `cat $img_list | grep -e "boot" -e "vbmeta" -e "dtbo"`
+do
+    flash_image $i
+done
+
+# 清理工作目录
+rm -rf $tmp
