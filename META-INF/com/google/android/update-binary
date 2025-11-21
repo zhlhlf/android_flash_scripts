@@ -154,25 +154,6 @@ elif [ $hh = "ddr5" ];then
    package_extract_file "$fw/xbl_config_lp5.img" "$pt_dir/xbl_config_$_ab"
 fi
 
-
-#刷入super并刷入images剩余部分
-ui_print " "
-ui_print "flash rom  -> a or b?    + is a   ||  - is b"
-_ab=$(keyListener)
-if [ $_ab = 1 ];then
-  _ab=a
-elif [ $_ab = 0 ];then
-  _ab=b
-fi
-
-# 刷入*boot* *vbmeta* dtbo
-if [ `exist "images/boot.img"` = 1 ];then
-    for i in `cat $img_list | grep -e "boot" -e "vbmeta" -e "dtbo"`
-    do
-        flash_image $i
-    done
-fi
-
 unzip -q "$ZIPFILE" scripts/*
 export PATH=$(pwd)/scripts:$PATH
 chmod 777 * -R
@@ -180,6 +161,7 @@ chmod 777 * -R
 
 if [ `exist "images/super."` = 1 ];then
     #flash super..
+    _ab=a    
     if [ `exist "images/super.zst"` = 1 ];then
         package_extract_zstd "images/super.zst" "$pt_dir/super"
     elif [ `exist "images/super.img"` = 1 ];then
@@ -189,7 +171,14 @@ if [ `exist "images/super."` = 1 ];then
 elif [ `exist "images/system.img"` = 1 ];then
 
     check_datasize 
-
+    ui_print " "
+    ui_print "flash rom  -> a or b?    + is a   ||  - is b"
+    _ab=$(keyListener)
+    if [ $_ab = 1 ];then
+      _ab=a
+    elif [ $_ab = 0 ];then
+      _ab=b
+    fi
     ui_print "extarct images/* ..."
 
     # 根据images里面剩余的镜像生成super
@@ -213,4 +202,13 @@ elif [ `exist "images/system.img"` = 1 ];then
     #开始生成和刷入super并刷入images剩余部分
     flash_super $_ab
 fi
-#rm -rf $tmp
+
+# 刷入*boot* *vbmeta* dtbo
+if [ `exist "images/boot.img"` = 1 ];then
+    for i in `cat $img_list | grep -e "boot" -e "vbmeta" -e "dtbo"`
+    do
+        flash_image $i
+    done
+fi
+
+rm -rf $tmp
