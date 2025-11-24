@@ -80,6 +80,7 @@ if exist %fw_path%\modem.img (
 
 echo ½øÈëfastboot...
 fastboot reboot fastboot
+sleep 3
 
 for %%i in (%fw_path%\*.img) do (
     set filename=%%~nxi
@@ -88,7 +89,6 @@ for %%i in (%fw_path%\*.img) do (
     if "!filename!"=="%%~nxi" (
         set filename=%%~ni
         fastboot flash !filename! %%i
-        sleep 0.2
     )
 )
 
