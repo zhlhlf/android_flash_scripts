@@ -6,8 +6,7 @@ ZIPFILE="$(pwd)/$3"
 #分区地址目录
 pt_dir="/dev/block/by-name"
 fw="firmware-update"
-img_list="/data/tmp/img_list.txt"
-log_file="/data/tmp/log.txt"
+img_list="img_list.txt"
 
 #进入work space
 tmp=/data/tmp
@@ -32,7 +31,7 @@ unzip -l $ZIPFILE | grep "images" | grep "\." | awk '{print $4}' >> $img_list
         do
             out+="$i "
         done
-        echo "$out" | tee -a  $log_file
+        echo "$out" | tee -a  ./zhlhlf.log
     }
     
     abort() { 
@@ -43,26 +42,42 @@ unzip -l $ZIPFILE | grep "images" | grep "\." | awk '{print $4}' >> $img_list
     
     exist() {
         if [ "$(cat $img_list | grep $1)" ];then
-            echo 1 && return 0
+            echo 1
         else        
-            echo 0 && return 1
+            echo 0
         fi
     }
     
     keyListener() {
-        key=$(getevent -qlc 1 2>&1 | grep VOLUME | grep " DOWN" | awk '{print $3}')
-        if [ $key = "KEY_VOLUMEUP" ]; then
+        # $1: 5 秒超时默认值，1=音量+(A)，0=音量-(B)；不传/传空则无限等待
+        default_val="$1"
+
+        # 有 timeout 就用 5 秒超时，否则退化为阻塞等待
+        if command -v timeout >/dev/null 2>&1; then
+            key=$(timeout 5 getevent -qlc 1 2>&1 | grep VOLUME | grep " DOWN" | awk '{print $3}')
+        else
+            key=$(getevent -qlc 1 2>&1 | grep VOLUME | grep " DOWN" | awk '{print $3}')
+        fi
+
+        if [ "$key" = "KEY_VOLUMEUP" ]; then
             echo 1
-        elif [ $key = "KEY_VOLUMEDOWN" ]; then
+        elif [ "$key" = "KEY_VOLUMEDOWN" ]; then
             echo 0
         else
-            keyListener
+            case "$default_val" in
+                0|1) echo "$default_val" ;;   # 有合法默认值 → 超时返回它
+                *)   keyListener ;;           # 无默认值 → 继续等待（旧行为）
+            esac
         fi
     }
     
     package_extract_file() {
         ui_print "flash `basename $1` -> `basename $2`"
-        unzip -p "$ZIPFILE" $1 >$2  
+        if [ "$3" ];then
+            dd if=$1 of=$2 bs=4K
+        else
+            unzip -p "$ZIPFILE" $1 >$2  
+        fi
         # 清除待刷机镜像列表
         sed -i "s#$1##g" $img_list
     
@@ -88,12 +103,9 @@ unzip -l $ZIPFILE | grep "images" | grep "\." | awk '{print $4}' >> $img_list
 
     flash_super(){
         . ./scripts/functions.sh
-        make_super project "$list_super" VAB $1 | tee -a  $log_file && ui_print "build super yes"
-        log "make_super project \"$list_super\" VAB $1"
-        
+        make_super "$super_size" "project" "$list_super" "VAB" "$1"
         if [ -f project/super.img ];then
-            dd if=project/super.img of=$pt_dir/super bs=4K
-            ui_print "flash super yes"
+            package_extract_file project/super.img $pt_dir/super "1"
         else
             abort "make super fail"
         fi
@@ -124,6 +136,8 @@ else
     abort "ddr get fail"
 fi
 
+ui_print " "
+ui_print "you device type is: $hh"
 ui_print "-----------------------------------------"
 ui_print "             Author by zhlhlf"
 ui_print "-----------------------------------------"
@@ -131,72 +145,65 @@ ui_print "-----------------------------------------"
 #判断刷入的是a还是b分区
 ui_print "flash fw  -> a or b?    + is a   ||  - is b"
 ui_print " "
-_ab=$(keyListener)
-if [ $_ab = 1 ];then
+_ab=$(keyListener 1)      # 5 秒不按默认 a
+if [ "$_ab" = "1" ];then
   _ab=a
-elif [ $_ab = 0 ];then
+elif [ "$_ab" = "0" ];then
   _ab=b
 fi
+ui_print "selected slot: $_ab"
 
-if [ `exist $fw/xbl_lp5.img` = 1 ];then
+#刷入ddr4 or ddr5（仅双 DDR 机型需要，zip 内有 xbl_lp5.img 才走这里）
+if [ `exist "$fw/xbl_lp5.img"` = 1 ];then
     ui_print "your device is ddr4/ddr5 fw"
-    #刷入ddr4 or ddr5  适配oneplus 9r 双ddr机型
     if [ $hh = "ddr4" ];then
-       package_extract_file "$fw/xbl.img" "$pt_dir/xbl_$_ab"
-       package_extract_file "$fw/xbl_config.img" "$pt_dir/xbl_config_$_ab"
+        package_extract_file "$fw/xbl.img" "$pt_dir/xbl_$_ab"
+        package_extract_file "$fw/xbl_config.img" "$pt_dir/xbl_config_$_ab"
     elif [ $hh = "ddr5" ];then
-       package_extract_file "$fw/xbl_lp5.img" "$pt_dir/xbl_$_ab"
-       package_extract_file "$fw/xbl_config_lp5.img" "$pt_dir/xbl_config_$_ab"
+        package_extract_file "$fw/xbl_lp5.img" "$pt_dir/xbl_$_ab"
+        package_extract_file "$fw/xbl_config_lp5.img" "$pt_dir/xbl_config_$_ab"
     fi
+    # 无论 ddr4/ddr5，刷完后统一清掉列表里所有 xbl 开头的 fw 镜像
+    sed -i "/$fw\/xbl/d" $img_list
 fi
 
-#刷入fw
+#刷入fw（xbl/xbl_config 已从清单删除，这里刷剩下的）
 for i in `cat $img_list | grep $fw`
 do
     flash_image $i
 done
 
-
-
-
 ui_print " "
-ui_print "fw all write yes"
+ui_print "fw all write done"
 ui_print " "
 
-# 刷入*boot* *vbmeta* dtbo
-if [ `exist "images/boot.img"` = 0 ];then
-    exit 0
-fi
-
-#刷入super并刷入images剩余部分
 unzip -q "$ZIPFILE" scripts/*
 export PATH=$(pwd)/scripts:$PATH
 chmod 777 * -R
 
-if [ `exist "images/super."` = 1 ];then
-    _ab=a
 
+if [ `exist "images/super."` = 1 ];then
     #flash super..
+    _ab=a    
     if [ `exist "images/super.zst"` = 1 ];then
         package_extract_zstd "images/super.zst" "$pt_dir/super"
     elif [ `exist "images/super.img"` = 1 ];then
-        package_extract_file images/super.img $pt_dir/super
+        flash_image "images/super.img"
     fi
     
 elif [ `exist "images/system.img"` = 1 ];then
 
     check_datasize 
-
-    #根据选择a b 刷入boot vbmeta dtbo等
+    ui_print " "
     ui_print "flash rom  -> a or b?    + is a   ||  - is b"
     ui_print " "
-    _ab=$(keyListener)
-    if [ $_ab = 1 ];then
+    _ab=$(keyListener 1)      # 5 秒不按默认 a，可改成 0
+    if [ "$_ab" = "1" ];then
       _ab=a
-    elif [ $_ab = 0 ];then
+    elif [ "$_ab" = "0" ];then
       _ab=b
     fi
-
+    ui_print "selected slot: $_ab"
     ui_print "extarct images/* ..."
 
     # 根据images里面剩余的镜像生成super
@@ -207,19 +214,69 @@ elif [ `exist "images/system.img"` = 1 ];then
         unzip -q "$ZIPFILE" "$i"
         list_super+="$i1 "
     done
-
+  
     mv images project
 
-    log "$list_super"
+    #获取super的大小    
+    size2=`sgdisk /dev/block/sda --print | grep super | awk '{print $3}'`
+    size1=`sgdisk /dev/block/sda --print | grep super | awk '{print $2}'`
+    super_size=`echo "($size2 - $size1 + 1) * 4096" | bc`
+
+    log "$list_super" "$super_size"
 
     #开始生成和刷入super并刷入images剩余部分
     flash_super $_ab
+    ui_print "super write done"
 fi
 
-for i in `cat $img_list | grep -e "boot" -e "vbmeta" -e "dtbo"`
-do
-    flash_image $i
-done
+# 刷入*boot* *vbmeta* dtbo
+if [ `exist "images/boot.img"` = 1 ];then
+    for i in `cat $img_list | grep -e "boot" -e "vbmeta" -e "dtbo"`
+    do
+        flash_image $i
+    done
+fi
 
-# 清理工作目录
+#--------------------- 可选：格式化 userdata 为 ext4 ---------------------
+
+if command -v mke2fs >/dev/null 2>&1; then
+    ui_print " "
+    ui_print "format userdata to ext4?"
+    ui_print "  + (VOLUMEUP)   = format (ERASE ALL DATA)"
+    ui_print "  - (VOLUMEDOWN) = skip"
+    ui_print "  (5s timeout -> skip)"
+    ui_print " "
+
+    fmt_choice=$(keyListener 0)   # 默认 0 = 不格式化
+    if [ "$fmt_choice" = "1" ]; then
+        ui_print "WARNING: this will ERASE ALL userdata!"
+        ui_print "press VOLUMEUP again to confirm, VOLUMEDOWN to cancel"
+        confirm=$(keyListener 0)
+        if [ "$confirm" = "1" ]; then
+            ui_print "formatting userdata (ext4) ..."
+            if mke2fs -t ext4 "$pt_dir/userdata"; then
+                ui_print "format userdata ok"
+                log "mke2fs -t ext4 $pt_dir/userdata success"
+            else
+                ui_print "format userdata fail"
+                log "mke2fs -t ext4 $pt_dir/userdata fail"
+            fi
+        else
+            ui_print "cancel format userdata"
+            log "cancel format userdata"
+        fi
+    else
+        ui_print "skip format userdata"
+        log "skip format userdata"
+    fi
+else
+    log "mke2fs not found, skip format userdata"
+fi
+
+ui_print " "
+ui_print "-----------------------------------------"
+ui_print "              all done!"
+ui_print "-----------------------------------------"
+ui_print " "
+
 rm -rf $tmp
